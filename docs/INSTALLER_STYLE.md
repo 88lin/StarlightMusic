@@ -120,3 +120,65 @@ node scripts/png-to-bmp.js --check build/installerSidebar.bmp   # 校验
 代价：之前**手动**装在别的目录的用户，升级时需要自己把路径改回去
 （`BhandsMusicValidateInstallDir` 里「用户选的路径 == 注册表已登记路径则放行」的豁免仍然保留，
 所以手动改回旧位置不会被拦）。
+
+## 2026-10-15 侧边图的安装路径不能烙在位图里
+
+### 现象
+
+用户在安装目录页把路径改成 `C:\Bhands\BhandsMusic`，**左侧栏底部仍显示 `D:\BhandsMusic`**。
+
+### 根因
+
+那两行字不是控件，是**画在 `installerSidebar.bmp` 像素里的**：
+
+| 内容 | 位图坐标（164x314） |
+|------|-------------------|
+| `安装` | y=240..249, x=33..50 |
+| `D:\BhandsMusic` | y=260..267, x=34..112 |
+
+静态位图永远拿不到运行时的 `$INSTDIR`。而且这张图被三处共用 ——
+自定义欢迎页、自定义目录页、以及 **MUI 标准完成页和卸载器**（`installerSidebar` /
+`uninstallerSidebar` 都指向它），所以完成页同样显示这个写死路径。
+
+### 修复
+
+1. **`scripts/sidebar-erase-install-path.js`** 把这两行从位图里擦掉。
+   逐行用左侧干净列（x=2..25）的均值回填，保留垂直渐变；背景实测 R 值全图只在
+   252..255 浮动，肉眼无痕。脚本**幂等**（擦完再跑像素零变化），支持 `--check`。
+2. **`build/installer.nsh`** 用两个 nsDialogs label 动态绘制，坐标由
+   位图 → 控件的线性映射算出（`109u/164 ≈ 0.665`、`193u/314 ≈ 0.615`）：
+
+   ```
+   「安装」label  22u 145u 105u 12u   8 号 700 色 111217
+   路径   label  22u 158u 105u 18u   8 号 400 色 4B5263
+   ```
+
+   - label 背景写 `FEFDFC` —— 侧边图背景实测 ≈ (254,253,252)，不是纯白，
+     用默认白底会出现一块略亮的方块。
+   - `${NSD_OnChange}` 绑输入框，用户每敲一个字侧边图就跟着变；
+     「浏览...」按钮回调里也同步。
+3. **`scripts/probe-nsis-syntax.js`** 增加 `[3-b]` 检查：擦除区（x=26..125,
+   y=234..272）内墨色像素必须为 0，并带**变异自检**（塞黑点必须能检出，防假绿）。
+   防的是「谁重新生成侧边图，把写死路径又烙回去」。
+
+### 坑
+
+- **句柄悬垂**：`nsDialogs::Show` 返回后控件已销毁，但 `$BhandsMusicSidebarPath`
+  变量还留着旧 HWND。加了 `BhandsMusicReleaseSidebarText` 在两个页面
+  `Show` 之后清零，`BhandsMusicUpdateSidebarPath` / `DirectoryInputChanged`
+  开头判空直接 Return。
+- **`DirectoryLeave` 里不能更新侧边图**：Leave 是在 `Show` **返回之后**才执行的，
+  那时 label 已经没了。归一化后的路径靠下次进页面时
+  `BhandsMusicResolveInstallDirForPage` + `UpdateSidebarPath` 画出来。
+- **输入框回调不要写 `$INSTDIR`**：用户清空输入框的中间态（`""` 或单字符）
+  会污染 `$INSTDIR`，而静默安装、上一步回退都依赖它。回调只做「显示」。
+- **`${NSD_SetText}` 内部是反引号**（`\`STR:${TEXT}\``），一度怀疑会抑制变量展开。
+  实测（`scripts/out/nsis-quote-test`，真实 nsDialogs 控件 + 含空格路径
+  `D:\My Music\BhandsMusic`）：`${NSD_SetText}` / 双引号 / 成对反引号
+  三种写法结果**完全一致**，变量都正常展开。反引号在这里是nsDialogs
+  宏作者为了包住含空格的宏参数，不是转义。
+
+### 验证
+
+`npm run probe:nsis` 覆盖：静态 Call 检查（带变异自检）、BMP 格式、
+侧边图无烙死文字（带变异自检）、makensis 真实编译（带负向脚本）。

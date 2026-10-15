@@ -154,6 +154,87 @@ function checkBitmaps() {
 }
 
 /* ------------------------------------------------------------------ *
+ * ③-b侧边图不能烙死安装路径
+ * ------------------------------------------------------------------ */
+
+/**
+ * `installerSidebar.bmp` 底部曾经烙死了「安装 / D:\BhandsMusic」两行像素，
+ * 导致用户在目录页改路径后左下角永远显示旧路径（2026-10-15 用户截图反馈）。
+ * 现已由 scripts/sidebar-erase-install-path.js 擦掉，改由 installer.nsh 动态绘制。
+ *
+ * 这道检查防的是「有人重新生成侧边图，把写死路径又烙回去」——
+ * 单测和真机验收都很难发现，但用户一眼就能看出来。
+ */
+const SIDEBAR_INK_REGION = { x0: 26, y0: 234, x1: 125, y1: 272 };
+const INK_THRESHOLD = 430;
+const SIDEBAR_BMP = path.join(REPO, 'build', 'installerSidebar.bmp');
+
+function countSidebarInk() {
+  const abs = path.join(REPO, 'build', 'installerSidebar.bmp');
+  if (!fs.existsSync(abs)) return -1;
+  const buf = fs.readFileSync(abs);
+  if (buf[0] !== 0x42 || buf[1] !== 0x4d) return -1;
+
+  const width = buf.readInt32LE(18);
+  const rawHeight = buf.readInt32LE(22);
+  const height = Math.abs(rawHeight);
+  const dataOffset = buf.readUInt32LE(10);
+  const rowSize = Math.ceil((width * 3) / 4) * 4;
+  const r = SIDEBAR_INK_REGION;
+
+  let ink = 0;
+  for (let fy = r.y0; fy <= r.y1; fy++) {
+    const sy = rawHeight > 0 ? height - 1 - fy : fy;
+    let src = dataOffset + sy * rowSize + r.x0 * 3;
+    for (let x = r.x0; x <= r.x1; x++) {
+      // BMP 字节序是 BGR
+      if (buf[src] + buf[src + 1] + buf[src + 2] < INK_THRESHOLD) ink++;
+      src += 3;
+    }
+  }
+  return ink;
+}
+
+function checkSidebarNotBurned() {
+  console.log('\n[3-b] 侧边图不能烙死安装路径（否则改路径后左下角不跟着变）');
+  const ink = countSidebarInk();
+  if (ink < 0) {
+    assert('build/installerSidebar.bmp 可解析', true, false);
+    return;
+  }
+  assert('侧边图路径区无残留墨色像素', 0, ink);
+  if (ink > 0) {
+    console.log(
+      '     该区域有 ' + ink + ' 个墨色像素 —— 写死的路径被烙回位图了。' +
+        '修复：node scripts/sidebar-erase-install-path.js'
+    );
+  }
+
+  // 变异自检：人为在擦除区画一个黑点，必须被判为有残留，
+  // 否则 countSidebarInk 恒返回 0，这道检查就是假绿。
+  const backup = fs.readFileSync(SIDEBAR_BMP);
+  try {
+    const mutated = Buffer.from(backup);
+    const width = mutated.readInt32LE(18);
+    const rawHeight = mutated.readInt32LE(22);
+    const height = Math.abs(rawHeight);
+    const rowSize = Math.ceil((width * 3) / 4) * 4;
+    const fy = 250;
+    const sy = rawHeight > 0 ? height - 1 - fy : fy;
+    const off = mutated.readUInt32LE(10) + sy * rowSize + 40 * 3;
+    mutated[off] = 0;
+    mutated[off + 1] = 0;
+    mutated[off + 2] = 0;
+    fs.writeFileSync(SIDEBAR_BMP, mutated);
+    const mutatedInk = countSidebarInk();
+    assert('变异自检：塞入黑点后能检出残留（防假绿）', true, mutatedInk > 0);
+  } finally {
+    fs.writeFileSync(SIDEBAR_BMP, backup);
+  }
+  assert('变异自检：位图已还原', true, countSidebarInk() === ink);
+}
+
+/* ------------------------------------------------------------------ *
  * ④ 真实编译
  * ------------------------------------------------------------------ */
 
@@ -340,6 +421,7 @@ function main() {
     checkStatic();
     console.log('');
     checkBitmaps();
+    checkSidebarNotBurned();
     console.log('');
     checkCompile();
   } finally {
