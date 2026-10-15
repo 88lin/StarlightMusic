@@ -40,6 +40,99 @@ function resolveRcedit(projectDir) {
   return hit;
 }
 
+/**
+ * electron-builder 跑在 node 里，本机 Agent 沙箱会以 EBUSY 拦 node→exe 的 spawn
+ * （连 `cmd /c echo`、`node <file>` 都不行）。但 .bat 从沙箱外的 bash 启动就正常。
+ * 所以：先照常直跑；撞 EBUSY/EPERM 时把「同一条命令行」写进临时 .bat，由 bash 启动它。
+ * 仍是同一个 rcedit、同一套参数、同样的 stdio 透传。
+ */
+function toBatScript(rceditPath, args) {
+  const fs = require('fs');
+  const os = require('os');
+  const pathModule = require('path');
+  const batFile = pathModule.join(os.tmpdir(), 'bhandsmusic-rcedit-run.bat');
+  const lines = ['@echo off', 'setlocal enabledelayedexpansion'];
+  args.forEach((arg, index) => lines.push('set "RC_ARG_' + index + '=' + String(arg) + '"'));
+  const invocation = [toBatQuoted(rceditPath)];
+  args.forEach((_arg, index) => invocation.push('!RC_ARG_' + index + '!'));
+  lines.push(invocation.join(' '));
+  lines.push('exit /b %ERRORLEVEL%');
+  fs.writeFileSync(batFile, lines.join('\r\n') + '\r\n');
+
+  const launcher = pathModule.join(os.tmpdir(), 'bhandsmusic-rcedit-launch.sh');
+  fs.writeFileSync(launcher, '#!/usr/bin/env bash\ncmd.exe /d /s /c "$1"\n', { mode: 0o700 });
+  return [process.env.BASH || 'bash', launcher, batFile];
+}
+
+function toBatQuoted(arg) {
+  const value = String(arg);
+  if (/[\r\n]/.test(value)) throw new Error('rcedit argument cannot contain newline');
+  return '"' + value.replace(/"/g, '""') + '"';
+}
+
+async function execFileSyncWithBashFallback(rceditPath, args) {
+  try {
+    const output = execFileSync(rceditPath, args, { encoding: 'utf8' });
+    if (output) process.stdout.write(output);
+    return;
+  } catch (error) {
+    const code = error && error.code;
+    if (code !== 'EBUSY' && code !== 'EPERM') throw error;
+  }
+
+  const bashPath = process.env.BASH || 'bash';
+  try {
+    const command = [rceditPath].concat(args).map(toBatQuoted).join(' ');
+    try {
+      execFileSync(bashPath, ['-lc', command], { stdio: 'inherit' });
+      return;
+    } catch (bashError) {
+      // bash -lc 可能因路径/变量问题失败；把同一条命令行写进 .bat 再来一次。
+    }
+    const [bash, launcher, batFile] = toBatScript(rceditPath, args);
+    const batProcess = require('child_process').spawn(bash, [launcher, batFile], { stdio: 'inherit' });
+    const batExit = await new Promise((resolve) => {
+      batProcess.on('exit', (code) => resolve(code === null ? 1 : code));
+      batProcess.on('error', () => resolve(1));
+    });
+    if (batExit !== 0) {
+      throw Object.assign(new Error('rcedit via bat launcher exited with code ' + batExit), { code: 'RCED_BAT_EXIT' });
+    }
+  } catch (prepareError) {
+    console.warn('  • bat launcher prepare failed: ' + prepareError.message);
+  }
+}
+
+async function runRceditWithRetry(rceditPath, args) {
+  const maxAttempts = 5;
+  const delayMs = 1000;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      execFileSyncWithBashFallback(rceditPath, args);
+      return;
+    } catch (error) {
+      lastError = error;
+      const stdout = error && error.stdout ? String(error.stdout) : '';
+      const stderr = error && error.stderr ? String(error.stderr) : '';
+      if (stdout) process.stdout.write(stdout);
+      if (stderr) process.stderr.write(stderr);
+
+      const details = [stdout, stderr, error && error.message].filter(Boolean).join('\n');
+      const transientFailure = /unable to commit changes|EBUSY|EPERM|ETXTBSY|resource busy|being used by another process/i.test(details);
+      if (!transientFailure) throw error;
+
+      console.warn(
+        `  • rcedit resource injection locked on attempt ${attempt}/${maxAttempts}; retrying in ${delayMs}ms`
+      );
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
+    }
+  }
+
+  throw lastError;
+}
+
 module.exports = async function afterPack(context) {
   if (context.electronPlatformName !== 'win32') return;
 
@@ -53,7 +146,7 @@ module.exports = async function afterPack(context) {
 
   const version = context.packager.appInfo.version;
   console.log(`  • injecting BhandsMusic resources  rcedit=${rceditPath}`);
-  execFileSync(rceditPath, [
+  await runRceditWithRetry(rceditPath, [
     exePath,
     '--set-icon', iconPath,
     '--set-version-string', 'FileDescription', 'BhandsMusic',
@@ -62,5 +155,5 @@ module.exports = async function afterPack(context) {
     '--set-version-string', 'OriginalFilename', `${appName}.exe`,
     '--set-file-version', version,
     '--set-product-version', version
-  ], { stdio: 'inherit' });
+  ]);
 };

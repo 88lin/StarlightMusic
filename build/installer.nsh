@@ -16,14 +16,16 @@
 !ifndef MUI_FINISHPAGE_LINK_COLOR
   !define MUI_FINISHPAGE_LINK_COLOR "3257F7"
 !endif
-!ifndef MUI_HEADERIMAGE
-  !define MUI_HEADERIMAGE
-!endif
-!ifndef MUI_HEADERIMAGE_BITMAP_STRETCH
-  !define MUI_HEADERIMAGE_BITMAP_STRETCH "FitControl"
-!endif
-!ifndef MUI_HEADERIMAGE_UNBITMAP_STRETCH
-  !define MUI_HEADERIMAGE_UNBITMAP_STRETCH "FitControl"
+
+; ⚠️ 不要定义 MUI_HEADERIMAGE。
+; 一旦定义，MUI 会走「顶部横幅」模式（header 图 150x57 全局加载到外框控件 1046），
+; 此时 MUI_PAGE_WELCOME / MUI_PAGE_FINISH **永远不会加载侧边大图**
+; （侧边图只在 Welcome.nsh / Finish.nsh 的非 header 分支里 SetBrandingImage）。
+; 换句话说：定义了 MUI_HEADERIMAGE，installerSidebar.bmp 就是一张死图。
+; 现在改为侧边图模式，build/installerSidebar.bmp（164x314）会显示在欢迎页与完成页。
+; electron-builder 侧对应的是 package.json 里**不配** installerHeader。
+!ifdef MUI_HEADERIMAGE
+  !undef MUI_HEADERIMAGE
 !endif
 !ifndef BUILD_UNINSTALLER
   !ifndef MUI_CUSTOMFUNCTION_GUIINIT
@@ -41,12 +43,21 @@
 
 !ifndef BUILD_UNINSTALLER
   Var BhandsMusicWelcomePage
+  Var BhandsMusicWelcomeImage
+  Var BhandsMusicWelcomeImageBitmap
   Var BhandsMusicHeroFont
   Var BhandsMusicTitleFont
   Var BhandsMusicBodyFont
   Var BhandsMusicSmallFont
   Var BhandsMusicDirectoryPage
+  Var BhandsMusicDirectoryImage
+  Var BhandsMusicDirectoryImageBitmap
   Var BhandsMusicDirectoryInput
+  ; 用户在安装目录页确认过的路径（空串 = 还没确认过）。
+  ; ⚠️ 不能只用「是否确认过」的布尔标志 —— electron-builder 的安装模式页会偷偷
+  ; 覆盖 $INSTDIR，所以必须把值本身存下来，下次显示页面时用它恢复。
+  ; 详见 BhandsMusicResolveInstallDirForPage。
+  Var BhandsMusicUserChosenDir
 !endif
 
 !macro customInit
@@ -218,6 +229,11 @@ Function BhandsMusicTintCommonControls
 FunctionEnd
 
 Function BhandsMusicUsePreferredInstallDir
+  ; 只负责算出默认值（/D= > D-Z 第一个存在的盘 > C:\BhandsMusic）。
+  ;
+  ; ⚠️ 「用户已经确认过目录页就别再动」由调用方负责（见 BhandsMusicResolveInstallDirForPage），
+  ; 这个函数本身不 pin 也不检查 pin —— 它在 customInit、欢迎页、目录页都会被调用，
+  ; 而目录页那一次是**必须执行**的（见 BhandsMusicDirectoryShow 的注释）。
   ${GetParameters} $R0
   ClearErrors
   ${GetOptions} $R0 "/D=" $R1
@@ -225,15 +241,35 @@ Function BhandsMusicUsePreferredInstallDir
   ${AndIf} $R1 != ""
     StrCpy $INSTDIR "$R1"
   ${Else}
-    Call BhandsMusicUseRegisteredInstallDir
-    Pop $R2
-    ${If} $R2 != "1"
-      Call BhandsMusicUseFirstAvailableInstallDir
-    ${EndIf}
+    ; 默认值只看盘符，**不读注册表里上次的安装位置** ——
+    ; 否则老用户（尤其被 electron-builder 默认装到
+    ; %LOCALAPPDATA%\Programs\BhandsMusic 的那批）会看到 C 盘路径被回填，
+    ; 而不是想要的 D:\BhandsMusic。用户仍可在安装目录页手动改到任意位置。
+    Call BhandsMusicUseFirstAvailableInstallDir
   ${EndIf}
   Push "$INSTDIR"
   Call BhandsMusicNormalizeInstallDir
   Pop $INSTDIR
+FunctionEnd
+
+; 页面显示时决定 $INSTDIR 用哪个值。
+;
+; ⚠️ 为什么不能只在 customInit 里定一次默认值：
+; electron-builder 的「安装模式」页（multiUserUi.nsh 的 PAGE_INSTALL_MODE）在**每次**
+; 离开欢迎页时都会触发，它的 PRE 函数因为我们 customInstallMode 强制了
+; $isForceCurrentInstall=1，会立刻执行 setInstallModePerUser（multiUser.nsh:21-56）
+; 然后 Abort 掉页面。那个宏会 ReadRegStr 注册表里的旧安装位置、没有就退回
+; $LocalAppData\Programs\${APP_FILENAME}，**把 $INSTDIR 覆盖成 C 盘路径**。
+; 页面被 Abort 掉看不见，覆盖却真实发生 —— 这就是目录页曾经显示
+; C:\Users\...\AppData\Local\Programs\BhandsMusic 的原因。
+; 而且用户「上一步」回欢迎页再前进会再触发一次，所以每次显示页面都要重新解析。
+Function BhandsMusicResolveInstallDirForPage
+  ${If} $BhandsMusicUserChosenDir != ""
+    ; 用户已经确认过 —— 用他选的值覆盖掉模板刚写进来的 C 盘路径。
+    StrCpy $INSTDIR "$BhandsMusicUserChosenDir"
+  ${Else}
+    Call BhandsMusicUsePreferredInstallDir
+  ${EndIf}
 FunctionEnd
 
 Function BhandsMusicUseFirstAvailableInstallDir
@@ -334,38 +370,6 @@ Function BhandsMusicUseFirstAvailableInstallDir
     Return
 FunctionEnd
 
-Function BhandsMusicHasPreferredInstallDrive
-  IfFileExists "D:\*.*" hasPreferred 0
-  IfFileExists "E:\*.*" hasPreferred 0
-  IfFileExists "F:\*.*" hasPreferred 0
-  IfFileExists "G:\*.*" hasPreferred 0
-  IfFileExists "H:\*.*" hasPreferred 0
-  IfFileExists "I:\*.*" hasPreferred 0
-  IfFileExists "J:\*.*" hasPreferred 0
-  IfFileExists "K:\*.*" hasPreferred 0
-  IfFileExists "L:\*.*" hasPreferred 0
-  IfFileExists "M:\*.*" hasPreferred 0
-  IfFileExists "N:\*.*" hasPreferred 0
-  IfFileExists "O:\*.*" hasPreferred 0
-  IfFileExists "P:\*.*" hasPreferred 0
-  IfFileExists "Q:\*.*" hasPreferred 0
-  IfFileExists "R:\*.*" hasPreferred 0
-  IfFileExists "S:\*.*" hasPreferred 0
-  IfFileExists "T:\*.*" hasPreferred 0
-  IfFileExists "U:\*.*" hasPreferred 0
-  IfFileExists "V:\*.*" hasPreferred 0
-  IfFileExists "W:\*.*" hasPreferred 0
-  IfFileExists "X:\*.*" hasPreferred 0
-  IfFileExists "Y:\*.*" hasPreferred 0
-  IfFileExists "Z:\*.*" hasPreferred 0
-  Push "0"
-  Return
-
-  hasPreferred:
-    Push "1"
-    Return
-FunctionEnd
-
 Function BhandsMusicNormalizeInstallDir
   Exch $0
   Push "$0"
@@ -459,58 +463,6 @@ Function BhandsMusicExistingInstallPathCanBeAdopted
   done:
     StrCpy $0 "$1"
     Exch $0
-FunctionEnd
-
-Function BhandsMusicUseRegisteredInstallDir
-  ReadRegStr $0 HKCU "Software\${APP_GUID}" InstallLocation
-  Push "$0"
-  Call BhandsMusicExistingInstallPathCanBeAdopted
-  Pop $1
-  ${If} $1 == "1"
-    Push "$0"
-    Call BhandsMusicNormalizeInstallDir
-    Pop $INSTDIR
-    Push "1"
-    Return
-  ${EndIf}
-
-  ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTALL_APP_KEY}" InstallLocation
-  Push "$0"
-  Call BhandsMusicExistingInstallPathCanBeAdopted
-  Pop $1
-  ${If} $1 == "1"
-    Push "$0"
-    Call BhandsMusicNormalizeInstallDir
-    Pop $INSTDIR
-    Push "1"
-    Return
-  ${EndIf}
-
-  ReadRegStr $0 HKLM "Software\${APP_GUID}" InstallLocation
-  Push "$0"
-  Call BhandsMusicExistingInstallPathCanBeAdopted
-  Pop $1
-  ${If} $1 == "1"
-    Push "$0"
-    Call BhandsMusicNormalizeInstallDir
-    Pop $INSTDIR
-    Push "1"
-    Return
-  ${EndIf}
-
-  ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTALL_APP_KEY}" InstallLocation
-  Push "$0"
-  Call BhandsMusicExistingInstallPathCanBeAdopted
-  Pop $1
-  ${If} $1 == "1"
-    Push "$0"
-    Call BhandsMusicNormalizeInstallDir
-    Pop $INSTDIR
-    Push "1"
-    Return
-  ${EndIf}
-
-  Push "0"
 FunctionEnd
 
 Function BhandsMusicRegisteredInstallDirCanBeAdopted
@@ -732,22 +684,6 @@ Function BhandsMusicValidateInstallDir
   Call BhandsMusicExistingInstallPathCanBeAdopted
   Pop $4
 
-  StrCpy $0 "$INSTDIR" 1 0
-  StrCpy $1 "$INSTDIR" 1 1
-  ${If} $1 == ":"
-    ${If} $0 == "C"
-    ${OrIf} $0 == "c"
-      Call BhandsMusicHasPreferredInstallDrive
-      Pop $2
-      ${If} $2 == "1"
-      ${AndIf} $3 != "1"
-      ${AndIf} $4 != "1"
-        MessageBox MB_ICONSTOP|MB_OK "检测到这台电脑还有 D-Z 盘，BhandsMusic 不安装到 C 盘。请改选 D 盘或其它非 C 盘的 BhandsMusic 文件夹。$\r$\n$\r$\n如果电脑只有 C 盘，安装器会自动放行 C:\BhandsMusic。"
-        Abort
-      ${EndIf}
-    ${EndIf}
-  ${EndIf}
-
   StrLen $0 "$INSTDIR"
   StrCpy $1 "$INSTDIR" 12 -12
   ${If} $0 < 12
@@ -786,46 +722,63 @@ Function BhandsMusicValidateInstallDir
 
   valid:
 FunctionEnd
-Function BhandsMusicWelcomeShow
-  Call BhandsMusicUsePreferredInstallDir
+Function BhandsMusicStageSidebarImage
+  InitPluginsDir
+  File /oname=$PLUGINSDIR\bhandsmusic-sidebar.bmp "${MUI_WELCOMEFINISHPAGE_BITMAP}"
+FunctionEnd
 
-  nsDialogs::Create 1018
+Function BhandsMusicWelcomeShow
+  Call BhandsMusicResolveInstallDirForPage
+  ; 侧边图页使用全窗口模式：header 由 MUI 隐藏，图片与右侧文案都在这张页面上绘制。
+  Call muiPageLoadFullWindow
+
+  nsDialogs::Create 1044
   Pop $BhandsMusicWelcomePage
   ${If} $BhandsMusicWelcomePage == error
+    Call muiPageUnloadFullWindow
     Abort
   ${EndIf}
 
+  Call BhandsMusicStageSidebarImage
   SetCtlColors $BhandsMusicWelcomePage "111217" "FFFFFF"
   CreateFont $BhandsMusicHeroFont "Microsoft YaHei UI" 24 700
   CreateFont $BhandsMusicTitleFont "Microsoft YaHei UI" 11 700
   CreateFont $BhandsMusicBodyFont "Microsoft YaHei UI" 9 400
   CreateFont $BhandsMusicSmallFont "Microsoft YaHei UI" 8 400
 
-  ${NSD_CreateLabel} 22u 20u 82u 10u "BHANDSMUSIC"
+  ${NSD_CreateBitmap} 0u 0u 109u 193u ""
+  Pop $BhandsMusicWelcomeImage
+  ${NSD_SetStretchedImage} $BhandsMusicWelcomeImage "$PLUGINSDIR\bhandsmusic-sidebar.bmp" $BhandsMusicWelcomeImageBitmap
+
+  ${NSD_CreateLabel} 120u 10u 195u 12u "BHANDSMUSIC"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicSmallFont 1
   SetCtlColors $0 "3257F7" "FFFFFF"
 
-  ${NSD_CreateLabel} 22u 42u 226u 30u "BhandsMusic 安装"
+  ${NSD_CreateLabel} 120u 30u 195u 36u "BhandsMusic 安装"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicHeroFont 1
   SetCtlColors $0 "111217" "FFFFFF"
 
-  ${NSD_CreateLabel} 22u 78u 36u 2u ""
+  ${NSD_CreateLabel} 120u 68u 36u 2u ""
   Pop $0
   SetCtlColors $0 "" "3257F7"
 
-  ${NSD_CreateLabel} 22u 96u 238u 24u "为这台电脑安装 BhandsMusic。默认安装到 D:\BhandsMusic，下一步可以自由选择其它位置。"
+  ${NSD_CreateLabel} 120u 84u 195u 34u "为这台电脑安装 BhandsMusic。下一步可以自由选择安装位置，安装器会自动创建缺失的目录。"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicBodyFont 1
   SetCtlColors $0 "4B5263" "FFFFFF"
 
-  ${NSD_CreateLabel} 22u 130u 238u 12u "默认位置：$INSTDIR"
+  ; 路径行上移并加高：旧欢迎页用了 1018 普通小页面，底部可用高度不足；
+  ; 同时原来的短 label 高度容易把 11pt 字体的下沿裁掉。
+  ${NSD_CreateLabel} 120u 122u 195u 24u "默认位置：$INSTDIR"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicTitleFont 1
   SetCtlColors $0 "3257F7" "FFFFFF"
 
   nsDialogs::Show
+  Call muiPageUnloadFullWindow
+  ${NSD_FreeImage} $BhandsMusicWelcomeImageBitmap
 FunctionEnd
 
 Function BhandsMusicDirectoryBrowse
@@ -842,50 +795,61 @@ Function BhandsMusicDirectoryBrowse
 FunctionEnd
 
 Function BhandsMusicDirectoryShow
-  Call BhandsMusicUsePreferredInstallDir
+  Call BhandsMusicResolveInstallDirForPage
+  Call muiPageLoadFullWindow
 
-  nsDialogs::Create 1018
+  nsDialogs::Create 1044
   Pop $BhandsMusicDirectoryPage
   ${If} $BhandsMusicDirectoryPage == error
+    Call muiPageUnloadFullWindow
     Abort
   ${EndIf}
 
+  Call BhandsMusicStageSidebarImage
   SetCtlColors $BhandsMusicDirectoryPage "111217" "FFFFFF"
   CreateFont $BhandsMusicTitleFont "Microsoft YaHei UI" 15 700
   CreateFont $BhandsMusicBodyFont "Microsoft YaHei UI" 9 400
   CreateFont $BhandsMusicSmallFont "Microsoft YaHei UI" 8 500
 
-  ${NSD_CreateLabel} 22u 12u 238u 20u "选择安装位置"
+  ${NSD_CreateBitmap} 0u 0u 109u 193u ""
+  Pop $BhandsMusicDirectoryImage
+  ${NSD_SetStretchedImage} $BhandsMusicDirectoryImage "$PLUGINSDIR\bhandsmusic-sidebar.bmp" $BhandsMusicDirectoryImageBitmap
+
+  ${NSD_CreateLabel} 120u 12u 195u 24u "选择安装位置"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicTitleFont 1
   SetCtlColors $0 "111217" "FFFFFF"
 
-  ${NSD_CreateLabel} 22u 40u 238u 24u "你可以使用默认路径，也可以选择其它磁盘或文件夹。安装器会自动创建缺失的目录。"
+  ${NSD_CreateLabel} 120u 40u 195u 30u "你可以使用默认路径，也可以选择其它磁盘或文件夹。安装器会自动创建缺失的目录。"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicBodyFont 1
   SetCtlColors $0 "4B5263" "FFFFFF"
 
-  ${NSD_CreateLabel} 22u 76u 238u 10u "安装目录"
+  ${NSD_CreateLabel} 120u 76u 195u 12u "安装目录"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicSmallFont 1
   SetCtlColors $0 "3257F7" "FFFFFF"
 
-  ${NSD_CreateText} 22u 94u 178u 15u "$INSTDIR"
+  ${NSD_CreateText} 120u 94u 128u 17u "$INSTDIR"
   Pop $BhandsMusicDirectoryInput
   SendMessage $BhandsMusicDirectoryInput ${WM_SETFONT} $BhandsMusicBodyFont 1
   SetCtlColors $BhandsMusicDirectoryInput "111217" "FFFFFF"
 
-  ${NSD_CreateBrowseButton} 210u 93u 50u 17u "浏览..."
+  ${NSD_CreateBrowseButton} 256u 93u 50u 19u "浏览..."
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicSmallFont 1
   ${NSD_OnClick} $0 BhandsMusicDirectoryBrowse
 
-  ${NSD_CreateLabel} 22u 122u 238u 12u "默认推荐：D:\BhandsMusic；选盘符会自动建文件夹。"
+  ; 高度 18u 只放得下一行，这句话在 195u 宽下会折两行 → 第二行被切（用户截图实测）。
+  ; 加高到 24u（与欢迎页「默认位置」一致），两行都显示得下。
+  ${NSD_CreateLabel} 120u 122u 195u 24u "可直接修改路径，或点右侧浏览按钮选择文件夹；选盘符会自动建文件夹。"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $BhandsMusicSmallFont 1
   SetCtlColors $0 "6B7280" "FFFFFF"
 
   nsDialogs::Show
+  Call muiPageUnloadFullWindow
+  ${NSD_FreeImage} $BhandsMusicDirectoryImageBitmap
 FunctionEnd
 
 Function BhandsMusicDirectoryLeave
@@ -899,6 +863,9 @@ Function BhandsMusicDirectoryLeave
   Pop $0
   StrCpy $INSTDIR "$0"
   SendMessage $BhandsMusicDirectoryInput ${WM_SETTEXT} 0 "STR:$INSTDIR"
+  ; 记下用户确认过的路径：之后回到本页、或回欢迎页再前进，都恢复这个值，
+  ; 而不是重新算默认值 —— 否则模板的安装模式页会把路径改回 C 盘。
+  StrCpy $BhandsMusicUserChosenDir "$INSTDIR"
   Call BhandsMusicValidateInstallDir
 FunctionEnd
 !endif
