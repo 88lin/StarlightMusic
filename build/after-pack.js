@@ -104,8 +104,11 @@ async function execFileSyncWithBashFallback(rceditPath, args) {
 }
 
 async function runRceditWithRetry(rceditPath, args) {
-  const maxAttempts = 5;
-  const delayMs = 1000;
+  const maxAttempts = 6;
+  // rcedit 要重写 200MB+ 的 exe，Windows Defender /杀软会在解压后立刻扫描它，
+  // 表现为 "unable to commit changes"。1s 间隔不够 —— 实测要 4~5s 才稳定。
+  // 退避序列，最后一次给足 15s。
+  const delaysMs = [2000, 4000, 6000, 8000, 10000, 15000];
   let lastError = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -123,6 +126,8 @@ async function runRceditWithRetry(rceditPath, args) {
       const transientFailure = /unable to commit changes|EBUSY|EPERM|ETXTBSY|resource busy|being used by another process/i.test(details);
       if (!transientFailure) throw error;
 
+      if (attempt === maxAttempts) break;
+      const delayMs = delaysMs[Math.min(attempt - 1, delaysMs.length - 1)];
       console.warn(
         `  • rcedit resource injection locked on attempt ${attempt}/${maxAttempts}; retrying in ${delayMs}ms`
       );
