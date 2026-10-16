@@ -955,6 +955,29 @@ var splashTimer = null;
 var reduceSplashMotion = false;
 var splashReadyToEnter = false;
 
+// 启动视频本地优先，下载包内的 media/splash-bg.mp4；文件损坏或首次开发态未拉取时回退 CDN。
+function initSplashBgVideoFallback() {
+  var video = document.getElementById('splash-bg-video');
+  if (!video) return;
+  var fallbackUrl = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_063509_7d167302-4fd4-480b-8260-18ab572333d4.mp4';
+  var fallbackUsed = false;
+  var play = function () {
+    var result = video.play();
+    if (result && result.catch) result.catch(function () {});
+  };
+  video.addEventListener('error', function () {
+    if (fallbackUsed) return;
+    fallbackUsed = true;
+    video.src = fallbackUrl;
+    video.load();
+    play();
+  });
+  video.addEventListener('loadeddata', play, { once: true });
+  video.src = 'media/splash-bg.mp4';
+  video.load();
+  play();
+}
+
 function splashClamp01(v) { return Math.max(0, Math.min(1, v)); }
 function splashSmoothstep(edge0, edge1, x) {
   var t = splashClamp01((x - edge0) / Math.max(0.0001, edge1 - edge0));
@@ -1564,6 +1587,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('splash');
   if (!s) return;
   markAppPerf('dom-content-loaded');
+  initSplashBgVideoFallback();
   // 秒启动跳过启动页（移植自上游 10-shell/03-splash.js）：直接进主页，不等待启动动画
   if (startupFastSkipPreference) {
     dismissSplash({ instant: true });

@@ -94,11 +94,14 @@ function kugouApiAppDir() {
 function ensureKugouApi() {
   if (!kugouApiState.ensured) {
     kugouApiState.nodeExe = process.env.KUGOU_NODE_EXE || undefined;
+    // ⚠️ dataDir / logFile 必须落在可写目录，**不能**是 appDir（app 包内部）——
+    //    向已签名的 .app 写日志会破坏 macOS 代码签名密封。
+    const kugouDataDir = kugouService.resolveDataDir();
     kugouApiState.ensured = kugouService.ensureRunning({
       appDir: kugouApiAppDir(),
       nodeExe: kugouApiState.nodeExe,
-      dataDir: kugouApiAppDir(),
-      logFile: path.join(kugouApiAppDir(), 'kugou-api.log')
+      dataDir: kugouDataDir,
+      logFile: path.join(kugouDataDir, 'kugou-api.log')
     }).then((r) => {
       if (!r.ok) kugouApiState.ensured = null; // 失败允许下次重试
       return r;
@@ -252,6 +255,19 @@ async function fillMetaFromNetease(id, meta) {
 const APP_PACKAGE = readPackageInfo();
 const APP_VERSION = process.env.BHANDSMUSIC_VERSION || APP_PACKAGE.version || '0.9.11';  // 当前版本
 const UPDATE_CONFIG = readUpdateConfig(APP_PACKAGE);  // 更新配置
+
+/* ==================== 平台 / 更新能力 ==================== */
+// ⚠️ 更新链路历史上是纯 Windows 口径：选资产只认 .exe/.msi、备用清单只读 latest.yml、
+//    兜底文件名写死 -Setup.exe —— 结果 Mac 用户点「检查更新」会下到 Windows 安装包。
+//    这里显式声明平台 / 架构，供「选资产 / 备用清单 / 兜底文件名 / 启动清理 / 补丁」统一复用。
+const UPDATE_PLATFORM = process.platform;   // 'darwin' | 'win32' | 'linux'
+const UPDATE_ARCH = process.arch;           // 'arm64' | 'x64' | ...
+const IS_MAC = UPDATE_PLATFORM === 'darwin';
+const IS_WIN = UPDATE_PLATFORM === 'win32';
+// 快速补丁要把文件写进应用目录。macOS 的 app 是已签名 bundle，写入会破坏代码签名密封
+// （codesign --verify 报 "a sealed resource is missing or invalid"），且 /Applications 需管理员权限，
+// 因此 mac 上一律不提供补丁，只走完整安装包（dmg + 手动拖入应用程序）。
+const PATCH_SUPPORTED = !IS_MAC;
 
 /* ==================== 补丁系统配置 ==================== */
 const PATCH_MAX_BYTES = 12 * 1024 * 1024;  // 补丁文件最大 12MB
@@ -635,11 +651,49 @@ function extractReleaseNotes(body) {
   });
   return notes.slice(0, 4);
 }
+/** 当前平台的安装包扩展名（Windows = exe/msi，macOS = dmg） */
+function installerAssetPatterns() {
+  if (IS_MAC) return [/\.dmg$/i];
+  if (IS_WIN) return [/\.exe$/i, /\.msi$/i];
+  return [/\.(exe|msi|dmg|appimage|deb|rpm)$/i];
+}
+/** 资产名是否属于「安装包」——排除 blockmap / 清单 / 校验文件等附属产物 */
+function isInstallerAssetName(name) {
+  const value = String(name || '');
+  if (!value) return false;
+  if (/\.(blockmap|yml|yaml|json|sha256|sha512|sha1|md5|txt|sig|asc)$/i.test(value)) return false;
+  return installerAssetPatterns().some(re => re.test(value));
+}
+/** 资产名里的架构标记是否匹配当前机器（未标注架构时视为通用） */
+function assetArchMatches(name) {
+  const value = String(name || '').toLowerCase();
+  const hasArm = /arm64|aarch64/.test(value);
+  const hasX64 = /x64|x86_64|amd64|intel/.test(value);
+  if (!hasArm && !hasX64) return true;
+  return UPDATE_ARCH === 'arm64' ? hasArm : hasX64;
+}
+/**
+ * macOS 多架构资产：优先当前架构，没有匹配再退回全部。
+ * ⚠️ 兼容两种条目形态：GitHub asset（`name`）与 electron-builder 清单条目（`url`）——
+ *    只读 `name` 会让清单条目全部落进「未标注架构 → 通用」分支，arm64 机器会选到 x64。
+ */
+function preferCurrentArch(list) {
+  if (!IS_MAC || !Array.isArray(list) || !list.length) return list || [];
+  const matched = list.filter(item => assetArchMatches(item && (item.name || item.url)));
+  return matched.length ? matched : list;
+}
+/** 当前平台的兜底安装包文件名（清单里缺 path 时使用） */
+function defaultInstallerName(version) {
+  const v = version || APP_VERSION;
+  return IS_MAC ? `BhandsMusic-${v}-mac-${UPDATE_ARCH}.dmg` : `BhandsMusic-${v}-Setup.exe`;
+}
 function pickReleaseAsset(assets) {
   const list = Array.isArray(assets) ? assets : [];
-  const preferred = list.find(a => /\.(exe|msi)$/i.test(a && a.name || ''))
-    || list.find(a => /\.(zip|7z)$/i.test(a && a.name || ''))
-    || list[0];
+  // 按平台筛安装包；Windows 额外允许 zip/7z（历史行为）。
+  // 不再用 list[0] 兜底 —— 那会把 .blockmap / .yml 之类附属产物当成安装包下给用户。
+  let pool = list.filter(item => isInstallerAssetName(item && item.name));
+  if (!pool.length && IS_WIN) pool = list.filter(item => /\.(zip|7z)$/i.test(item && item.name || ''));
+  const preferred = preferCurrentArch(pool)[0] || null;
   if (!preferred) return null;
   const digest = assetDigestInfo(preferred);
   const candidates = uniqueDownloadCandidates(preferred.browser_download_url || '');
@@ -658,6 +712,7 @@ function patchAssetVersions(name) {
   return matches.map(item => normalizeVersion(item.replace(/[._-]/g, '.'))).filter(Boolean);
 }
 function pickPatchAsset(assets, currentVersion, latestVersion) {
+  if (!PATCH_SUPPORTED) return null;  // macOS：补丁会破坏代码签名密封，不提供
   const list = Array.isArray(assets) ? assets : [];
   const current = normalizeVersion(currentVersion || APP_VERSION);
   const latest = normalizeVersion(latestVersion || '');
@@ -726,7 +781,7 @@ function normalizeManifestUpdateInfo(data) {
     ? release.notes.slice(0, 4).map(cleanReleaseLine).filter(Boolean)
     : (extractReleaseNotes(release.body || data.body).length ? extractReleaseNotes(release.body || data.body) : UPDATE_FALLBACK_NOTES);
   const assetInfo = downloadUrl ? {
-    name: asset.name || updateAssetNameFromUrl(downloadUrl) || `BhandsMusic-${latestVersion}-Setup.exe`,
+    name: asset.name || updateAssetNameFromUrl(downloadUrl) || defaultInstallerName(latestVersion),
     size: Number(asset.size || 0) || 0,
     contentType: asset.contentType || asset.content_type || '',
     downloadUrl,
@@ -749,7 +804,7 @@ function normalizeManifestUpdateInfo(data) {
       downloadUrl,
       asset: assetInfo,
       patch: patchInfo,
-      patchAvailable: !!(patchInfo && patchInfo.downloadUrl && compareVersions(latestVersion, APP_VERSION) > 0),
+      patchAvailable: !!(PATCH_SUPPORTED && patchInfo && patchInfo.downloadUrl && compareVersions(latestVersion, APP_VERSION) > 0),
       summary: release.summary || data.summary || notes[0] || '发现新版本，建议更新。',
       notes,
     },
@@ -1053,7 +1108,8 @@ function cleanupUpdateDownloadsOnBoot() {
           removed++;
           return;
         }
-        if (!/^BhandsMusic-\d+(?:\.\d+){1,3}-Setup\.exe$/i.test(name)) return;
+        // 安装包命名：Windows = BhandsMusic-x.y.z-Setup.exe；macOS = BhandsMusic-x.y.z-mac-<arch>.dmg
+        if (!/^BhandsMusic-\d+(?:\.\d+){1,3}(?:-Setup\.exe|-mac-(?:arm64|x64)\.dmg)$/i.test(name)) return;
         const cmp = compareVersions(normalizeVersion(name), APP_VERSION);
         if (cmp > 0) return; // 比当前运行版本还新 = 还没安装的更新包，保留
         if (cmp < 0 || stat.mtimeMs < bootTime) {
@@ -1098,11 +1154,52 @@ function githubReleaseDownloadUrl(version, fileName) {
   const encodedName = String(fileName || '').split('/').map(part => encodeURIComponent(part)).join('/');
   return `https://github.com/${encodedOwner}/${encodedRepo}/releases/download/${tag}/${encodedName}`;
 }
+/** 解析 electron-builder 清单里的 files 列表（每项含 url / sha512 / size） */
+function parseYmlFileEntries(text) {
+  const entries = [];
+  let cur = null;
+  String(text || '').split(/\r?\n/).forEach(line => {
+    // 行首无缩进 = 顶层键（version / files / path / sha512 / releaseDate …）
+    // → 结束当前条目。否则顶层 sha512（它属于 path）会覆盖最后一个条目的 sha512。
+    if (/^\S/.test(line)) {
+      if (cur) { entries.push(cur); cur = null; }
+      return;
+    }
+    const urlMatch = line.match(/^\s*-\s*url:\s*(.+?)\s*$/);
+    if (urlMatch) {
+      if (cur) entries.push(cur);
+      cur = { url: urlMatch[1].replace(/^['"]|['"]$/g, '') };
+      return;
+    }
+    if (!cur) return;
+    const fieldMatch = line.match(/^\s*(sha512|sha256|size)\s*:\s*(.+?)\s*$/);
+    if (fieldMatch) cur[fieldMatch[1]] = fieldMatch[2].replace(/^['"]|['"]$/g, '');
+  });
+  if (cur) entries.push(cur);
+  return entries;
+}
+/**
+ * 从清单的 files 列表里挑出当前平台（+ 架构）的安装包条目。
+ * macOS 的 latest-mac.yml 会同时列出 arm64 / x64 两个 dmg，必须按架构挑，
+ * 不能直接取顶层 path（那是 electron-builder 指定的「主」产物，未必是本机架构）。
+ */
+function pickYmlInstallerEntry(text) {
+  const entries = parseYmlFileEntries(text);
+  if (!entries.length) return null;
+  const installers = entries.filter(entry => isInstallerAssetName(entry.url));
+  const pool = installers.length ? installers : entries;
+  return preferCurrentArch(pool)[0] || null;
+}
 function parseLatestYmlUpdateInfo(text, reason) {
   const latestVersion = normalizeVersion(yamlScalar(text, 'version') || APP_VERSION) || APP_VERSION;
-  const assetPath = yamlScalar(text, 'path') || yamlScalar(text, 'url') || `BhandsMusic-${latestVersion}-Setup.exe`;
-  const sha512 = normalizeDigest(yamlScalar(text, 'sha512'), 'sha512');
-  const size = Number(yamlScalar(text, 'size') || 0) || 0;
+  // 优先用 files 列表里按平台/架构挑中的条目 —— 它的 sha512/size 才是这个文件自己的
+  const entry = pickYmlInstallerEntry(text);
+  const assetPath = (entry && entry.url)
+    || yamlScalar(text, 'path')
+    || yamlScalar(text, 'url')
+    || defaultInstallerName(latestVersion);
+  const sha512 = normalizeDigest((entry && entry.sha512) || yamlScalar(text, 'sha512'), 'sha512');
+  const size = Number((entry && entry.size) || yamlScalar(text, 'size') || 0) || 0;
   const releaseDate = yamlScalar(text, 'releaseDate');
   const downloadUrl = githubReleaseDownloadUrl(latestVersion, assetPath);
   const candidates = uniqueDownloadCandidates(downloadUrl);
@@ -1140,7 +1237,9 @@ function parseLatestYmlUpdateInfo(text, reason) {
 }
 async function fetchLatestYmlUpdateInfo(reason) {
   if (!UPDATE_CONFIG.configured || UPDATE_CONFIG.provider !== 'github') throw updateError('UPDATE_REPOSITORY_NOT_CONFIGURED');
-  const latestYmlUrl = `https://github.com/${encodeURIComponent(UPDATE_CONFIG.owner)}/${encodeURIComponent(UPDATE_CONFIG.repo)}/releases/latest/download/latest.yml`;
+  // electron-builder 分别产出 latest.yml（Windows / NSIS）与 latest-mac.yml（macOS）
+  const manifestName = IS_MAC ? 'latest-mac.yml' : 'latest.yml';
+  const latestYmlUrl = `https://github.com/${encodeURIComponent(UPDATE_CONFIG.owner)}/${encodeURIComponent(UPDATE_CONFIG.repo)}/releases/latest/download/${manifestName}`;
   const candidates = uniqueDownloadCandidates(latestYmlUrl);
   const result = await fetchTextFromCandidates(candidates, 6500);
   return parseLatestYmlUpdateInfo(result.text, reason);
@@ -1197,13 +1296,14 @@ async function fetchLatestUpdateInfo() {
   }
 }
 function safeUpdateFileName(name, version) {
-  const raw = String(name || '').trim() || `BhandsMusic-${version || APP_VERSION}.exe`;
+  const fallback = defaultInstallerName(version);   // 按平台给 .exe / .dmg
+  const raw = String(name || '').trim() || fallback;
   const cleaned = raw
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 160);
-  return cleaned || `BhandsMusic-${version || APP_VERSION}.exe`;
+  return cleaned || fallback;
 }
 function publicUpdateJob(job) {
   if (!job) return { ok: false, error: 'UPDATE_JOB_NOT_FOUND' };
@@ -3747,6 +3847,8 @@ const server = http.createServer(async (req, res) => {
       name: APP_PACKAGE.name || 'bhandsmusic',
       productName: APP_PACKAGE.productName || 'BhandsMusic',
       version: APP_VERSION,
+      platform: UPDATE_PLATFORM,
+      arch: UPDATE_ARCH,
       update: {
         provider: UPDATE_CONFIG.provider,
         configured: UPDATE_CONFIG.configured,
@@ -3754,6 +3856,9 @@ const server = http.createServer(async (req, res) => {
         repo: UPDATE_CONFIG.repo,
         preview: UPDATE_CONFIG.preview,
         manifestOverride: !!UPDATE_CONFIG.manifest,
+        // 平台能力：macOS 走「下载 dmg + 手动拖入应用程序」，不支持快速补丁
+        patchSupported: PATCH_SUPPORTED,
+        installerKind: IS_MAC ? 'dmg' : (IS_WIN ? 'nsis' : 'unknown'),
       },
     });
     return;
@@ -3793,6 +3898,15 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pn === '/api/update/patch') {
+    // macOS：app 是已签名 bundle，补丁写入会破坏代码签名密封，一律拒绝并引导下载完整包
+    if (!PATCH_SUPPORTED) {
+      sendJSON(res, {
+        ok: false,
+        error: 'PATCH_UNSUPPORTED_PLATFORM',
+        message: 'macOS 版不支持快速补丁，请下载完整安装包（dmg）更新。',
+      }, 400);
+      return;
+    }
     try {
       const info = await fetchLatestUpdateInfo();
       const job = startUpdatePatchJob(info);
@@ -5279,4 +5393,5 @@ server.on('error', (err) => {
 });
 
 /* ==================== 模块导出 ==================== */
+server.kugouService = kugouService;
 module.exports = server;

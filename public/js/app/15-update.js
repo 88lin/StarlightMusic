@@ -19,6 +19,11 @@
 // ============================================================
 //  更新提示预览
 // ============================================================
+// 平台判定统一用内联表达式（不新增顶层 function —— 那会改变「加载期条目」基线，
+// 被 scripts/check-app-reorg.js 与 tests/app-reorg.test.js 拦下）：
+//   var isMac = !!(window.desktopWindow && window.desktopWindow.platform === 'darwin');
+// macOS 走「下载 dmg + 手动拖入应用程序」，**不支持快速补丁** —— 补丁要把文件写进
+// 已签名的 app bundle，会破坏代码签名密封（codesign --verify 直接失败）。
 function formatUpdateBytes(bytes) {
   bytes = Number(bytes) || 0;
   if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(2).replace(/\.00$/, '') + ' GB';
@@ -116,7 +121,7 @@ function applyLatestUpdateInfo(data) {
   updatePreviewState.updateAvailable = !!data.updateAvailable;
   updatePreviewState.releaseUrl = release.htmlUrl || data.htmlUrl || '';
   updatePreviewState.downloadUrl = release.downloadUrl || data.downloadUrl || '';
-  updatePreviewState.patchAvailable = !!(release.patchAvailable && release.patch && release.patch.downloadUrl);
+  updatePreviewState.patchAvailable = !!(!(window.desktopWindow && window.desktopWindow.platform === 'darwin') && release.patchAvailable && release.patch && release.patch.downloadUrl);
   updatePreviewState.patchUrl = updatePreviewState.patchAvailable ? release.patch.downloadUrl : '';
   updatePreviewState.patchFallbackTried = false;
   var summaryText = String(release.summary || '').trim();
@@ -184,6 +189,8 @@ function syncUpdatePreviewStateClass() {
   var isError = updatePreviewState.status === 'error';
   var isOpening = updatePreviewState.status === 'opening';
   var isPatch = updatePreviewState.mode === 'patch';
+  var isMac = !!(window.desktopWindow && window.desktopWindow.platform === 'darwin');
+  var patchAvailable = updatePreviewState.patchAvailable && !isMac;   // macOS 不支持快速补丁
   if (entry) {
     entry.classList.toggle('downloading', isDownloading || isOpening);
     entry.classList.toggle('ready', isReady);
@@ -198,25 +205,29 @@ function syncUpdatePreviewStateClass() {
   var canOpenRelease = updatePreviewState.configured && updatePreviewState.updateAvailable && !updatePreviewState.downloadUrl && updatePreviewState.releaseUrl;
   if (label) {
     if (isDownloading) label.textContent = (isPatch ? '快速补丁 ' : '正在下载 ') + Math.round(updatePreviewState.progress) + '%';
-    else if (isOpening) label.textContent = '正在打开安装包';
-    else if (isError && updatePreviewState.mode === 'patch' && updatePreviewState.downloadUrl) label.textContent = '下载完整安装包';
+    else if (isOpening) label.textContent = isMac ? '正在打开 DMG' : '正在打开安装包';
+    else if (isError && updatePreviewState.mode === 'patch' && updatePreviewState.downloadUrl) label.textContent = isMac ? '下载 DMG 安装包' : '下载完整安装包';
     else if (isError) label.textContent = updatePreviewState.mode === 'installer' ? '重试下载' : '重试更新';
     else if (isReady && isPatch && updatePreviewState.restartRequired) label.textContent = '重启生效';
     else if (isReady && isPatch) label.textContent = '补丁已应用';
-    else if (isReady && updatePreviewState.installerOpened) label.textContent = '安装包已打开';
-    else if (isReady && updatePreviewState.installerPath) label.textContent = updatePreviewState.cached ? '打开已下载安装包' : '打开安装包';
+    else if (isReady && updatePreviewState.installerOpened) label.textContent = isMac ? 'DMG 已打开' : '安装包已打开';
+    else if (isReady && updatePreviewState.installerPath) label.textContent = isMac ? '打开 DMG 安装包' : (updatePreviewState.cached ? '打开已下载安装包' : '打开安装包');
     else if (isReady) label.textContent = updatePreviewState.configured ? '打开安装包' : '预览完成';
-    else label.textContent = updatePreviewState.patchAvailable ? '安装快速补丁' : ((canDownloadUpdate || canOpenRelease) ? '下载完整安装包' : '检查更新');
+    else label.textContent = patchAvailable ? '安装快速补丁' : ((canDownloadUpdate || canOpenRelease) ? (isMac ? '下载 DMG 安装包' : '下载完整安装包') : '检查更新');
   }
   if (btn) btn.disabled = false;
   var foot = document.getElementById('update-footnote');
   if (foot) {
-    if (isDownloading) foot.textContent = (updatePreviewState.message || (isPatch ? '正在下载快速补丁' : '正在下载完整安装包')) + (updateProgressDetailText() ? ' · ' + updateProgressDetailText() : '');
+    if (isDownloading) foot.textContent = (updatePreviewState.message || (isPatch ? '正在下载快速补丁' : (isMac ? '正在下载 DMG 安装包' : '正在下载完整安装包'))) + (updateProgressDetailText() ? ' · ' + updateProgressDetailText() : '');
     else if (isError) foot.textContent = '下载失败：' + (updatePreviewState.errorReason || updatePreviewState.errorDetail || updatePreviewState.message || '请稍后重试') + (updatePreviewState.failedAttempts && updatePreviewState.failedAttempts.length ? ' · 已尝试 ' + updatePreviewState.failedAttempts.length + ' 条线路' : '');
     else if (isReady && isPatch) foot.textContent = updatePreviewState.restartRequired ? '快速补丁已应用，重启 BhandsMusic 后生效。' : '快速补丁已应用。';
-    else if (isReady) foot.textContent = updatePreviewState.cached ? '已复用上次校验通过的安装包，不会重复下载。' : '安装包已准备好，点击按钮后再打开安装。';
-    else if (updatePreviewState.patchAvailable) foot.textContent = '优先使用轻量补丁，只更新缺失或变更的资源文件；不适用时可下载完整安装包。';
-    else foot.textContent = updatePreviewState.updateAvailable ? '没有可用快速补丁时会下载完整安装包。' : '当前版本已是最新。';
+    else if (isReady) foot.textContent = isMac
+      ? 'DMG 已就绪。点击打开后把 BhandsMusic 拖进「应用程序」完成替换（替换前请先退出当前应用）。'
+      : (updatePreviewState.cached ? '已复用上次校验通过的安装包，不会重复下载。' : '安装包已准备好，点击按钮后再打开安装。');
+    else if (patchAvailable) foot.textContent = '优先使用轻量补丁，只更新缺失或变更的资源文件；不适用时可下载完整安装包。';
+    else foot.textContent = updatePreviewState.updateAvailable
+      ? (isMac ? 'macOS 版不支持快速补丁，将下载 DMG 安装包。' : '没有可用快速补丁时会下载完整安装包。')
+      : '当前版本已是最新。';
   }
 }
 
@@ -491,7 +502,11 @@ async function openDownloadedUpdateInstaller(filePath) {
       updatePreviewState.installerOpened = true;
       updatePreviewState.status = 'ready';
       syncUpdatePreviewStateClass();
-      showToast('安装包已打开');
+      if (result.needsManualReplace) {
+        showToast('DMG 已打开，请把 BhandsMusic 拖进「应用程序」完成替换');
+      } else {
+        showToast('安装包已打开');
+      }
       return;
     }
     throw new Error('DESKTOP_BRIDGE_MISSING');
@@ -511,7 +526,9 @@ function startUpdatePreviewDownload() {
   }
   if (updatePreviewState.status === 'downloading' || updatePreviewState.status === 'opening') return;
   if (updatePreviewState.configured && updatePreviewState.updateAvailable) {
-    if (updatePreviewState.patchAvailable && updatePreviewState.patchUrl && !updatePreviewState.patchFallbackTried) {
+    // macOS 不走补丁（会破坏 app 代码签名），直接下载 dmg
+    if (updatePreviewState.patchAvailable && updatePreviewState.patchUrl && !updatePreviewState.patchFallbackTried
+      && !(window.desktopWindow && window.desktopWindow.platform === 'darwin')) {
       startRealUpdatePatch();
     } else if (updatePreviewState.downloadUrl) {
       startRealUpdateDownload();

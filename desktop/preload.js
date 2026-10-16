@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   // ==================== 环境标识 ====================
   /** 标识当前运行在 Electron 桌面环境中（渲染进程可据此判断环境） */
   isDesktop: true,
+  /** 当前操作系统（'darwin' | 'win32' | 'linux'）—— 更新等平台相关 UI 据此分流 */
+  platform: process.platform,
+  /** 当前 CPU 架构（'arm64' | 'x64' | ...） */
+  arch: process.arch,
 
   // ==================== 窗口控制 ====================
   /** 最小化窗口 */

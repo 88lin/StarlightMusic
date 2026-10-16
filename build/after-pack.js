@@ -138,7 +138,65 @@ async function runRceditWithRetry(rceditPath, args) {
   throw lastError;
 }
 
+/**
+ * macOS 无证书构建的收尾：ad-hoc 签名。
+ *
+ * electron-builder 在 `mac.identity = null` 时会**完全跳过**签名，但 Apple Silicon 上
+ * 任何可执行文件都必须带有有效签名（哪怕只是 ad-hoc），否则内核会直接以
+ * "code signature invalid" 杀掉进程——而 electron-builder 改写过 Electron.app
+ * （改名、注入 app.asar、改 Info.plist），原有签名已经失效。
+ *
+ * 所以这里用 `codesign --sign -`（ad-hoc）重签整个 bundle；--deep 会把
+ * Frameworks / Helpers 以及 vendor 里随包分发的原生二进制（go-music-api）一并签掉。
+ * 注意：ad-hoc 签名只解决"本机能否启动"，绕过 Gatekeeper 仍需用户右键打开。
+ */
+function adHocSignMac(context) {
+  const appName = context.packager.appInfo.productFilename || 'BhandsMusic';
+  const appPath = path.join(context.appOutDir, `${appName}.app`);
+  if (!fs.existsSync(appPath)) throw new Error(`BhandsMusic app bundle was not found: ${appPath}`);
+
+  console.log(`  • ad-hoc signing (no Developer ID certificate)  ${appPath}`);
+  execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' });
+  execFileSync('codesign', ['--verify', '--deep', '--strict', '--verbose=1', appPath], { stdio: 'inherit' });
+  console.log('  • ad-hoc signature verified');
+}
+
+/** 钥匙串里是否存在可用的代码签名身份（自签名证书也算） */
+function hasCodesigningIdentity() {
+  try {
+    const out = execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], { encoding: 'utf8' });
+    return !/0 valid identities found/.test(out) && /"[^"]+"/.test(out);
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * 判断这次是否要我们自己补 ad-hoc 签名。
+ *
+ * - `mac.identity` 显式写成 null → electron-builder 完全不签名，由我们兜底；
+ * - `mac.identity` 指定了具体身份（包括 "-"）→ 交给 electron-builder 自己签。
+ *   它走 @electron/osx-sign，会按正确顺序逐个签嵌套代码，比 `codesign --deep` 规范；
+ * - 未配置 identity → 只有当钥匙串里确实没有可用身份时才兜底。
+ *   有证书（含自签名）时 electron-builder 会自动发现并使用它。
+ */
+function shouldAdHocSign(context) {
+  const macOptions = context.packager.platformSpecificBuildOptions || {};
+  const configured = macOptions.identity;
+  if (configured === null) return true;
+  if (typeof configured === 'string' && configured.trim() !== '') return false;
+  return !hasCodesigningIdentity();
+}
+
 module.exports = async function afterPack(context) {
+  if (context.electronPlatformName === 'darwin') {
+    if (shouldAdHocSign(context)) {
+      adHocSignMac(context);
+    } else {
+      console.log('  • skipping ad-hoc signing — a code signing identity is available, electron-builder will sign');
+    }
+    return;
+  }
   if (context.electronPlatformName !== 'win32') return;
 
   const appName = context.packager.appInfo.productFilename || 'BhandsMusic';

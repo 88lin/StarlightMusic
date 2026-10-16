@@ -24,6 +24,12 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = 'https://github.com/MakcRe/KuGouMusicApi.git';
+const REPO_CANDIDATES = [
+  REPO,
+  'https://gh-proxy.com/' + REPO,
+  'https://ghfast.top/' + REPO,
+  'https://gh.llkk.cc/' + REPO
+];
 const OUT_DIR = path.join(__dirname, '..', 'vendor', 'kugou-api');
 const NODE_VERSION = 'v20.18.1';
 const NODE_MIRRORS = [
@@ -78,8 +84,16 @@ async function main() {
     }
     fs.mkdirSync(path.dirname(OUT_DIR), { recursive: true });
     console.log('[fetch-kugou-api] 浅克隆上游仓库…');
-    if (!run('git', ['clone', '--depth', '1', REPO, OUT_DIR])) {
-      console.error('[fetch-kugou-api] git clone 失败');
+    let cloned = false;
+    for (const repoUrl of REPO_CANDIDATES) {
+      console.log('[fetch-kugou-api] 尝试 ' + (repoUrl === REPO ? 'GitHub 直连' : repoUrl));
+      if (run('git', ['clone', '--depth', '1', repoUrl, OUT_DIR])) {
+        cloned = true;
+        break;
+      }
+    }
+    if (!cloned) {
+      console.error('[fetch-kugou-api] 所有 git clone 地址均失败');
       process.exit(1);
     }
   } else {

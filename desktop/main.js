@@ -78,7 +78,16 @@ const MIN_WINDOWED_HEIGHT = 540;      // 窗口最小高度
 // ==================== 应用信息常量 ====================
 const APP_NAME = 'BhandsMusic';                                   // 应用名称
 const APP_USER_MODEL_ID = 'com.bhandsmusic.desktop';              // Windows 任务栏分组标识
-const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico'); // 应用图标路径
+const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico'); // 应用图标路径（Windows）
+/**
+ * 托盘图标路径。
+ * macOS 的 nativeImage 读不了 .ico，且菜单栏图标应当是 16pt（@2x 为 32px）的小图，
+ * 所以非 Windows 平台改用 build/tray-icon.png（Electron 会自动加载同目录的 @2x 变体）。
+ */
+const APP_ICON_TRAY = path.join(
+  __dirname, '..', 'build',
+  process.platform === 'darwin' ? 'tray-icon.png' : 'icon.ico'
+);
 
 // ==================== 音乐平台登录配置 ====================
 const NETEASE_LOGIN_PARTITION = 'persist:bhandsmusic-netease-login'; // 网易云登录的 session 分区（持久化）
@@ -122,9 +131,15 @@ const CHROMIUM_PERFORMANCE_SWITCHES = [
   ['disable-background-timer-throttling'],          // 禁止后台标签页定时器节流（保持音乐播放）
   ['disable-renderer-backgrounding'],               // 禁止后台渲染器降级
   ['disable-backgrounding-occluded-windows'],       // 禁止被遮挡窗口进入后台模式
-  ['force_high_performance_gpu'],                   // 强制使用高性能独立显卡
-  ['use-angle', 'd3d11'],                           // 使用 ANGLE D3D11 后端（Windows 图形兼容层）
 ];
+// Windows 需要显式选择 D3D11；macOS 的 ANGLE 只提供 OpenGL/Metal，
+// 强行传入 d3d11 会让 GPU 进程初始化失败，进而使 WebGL 视觉全部降级。
+if (process.platform === 'win32') {
+  CHROMIUM_PERFORMANCE_SWITCHES.push(
+    ['force_high_performance_gpu'],                 // 强制使用高性能独立显卡
+    ['use-angle', 'd3d11']                          // 使用 ANGLE D3D11 后端（Windows 图形兼容层）
+  );
+}
 // ── GPU 崩溃自动降级（2026-09-22）────────────────────────────
 // 下面这批开关会「强制」启用硬件加速与高性能独显；当机器 GPU 环境异常时
 // （驱动更新/独显被禁/被占用），GPU 进程会反复崩溃并触发
@@ -132,34 +147,61 @@ const CHROMIUM_PERFORMANCE_SWITCHES = [
 // 用「崩溃标记」实现自动降级：启动前打标记 → 正常启动后清除；
 // 下次启动若发现标记仍在，说明上次 GPU 崩了，本次自动改用软件渲染。
 // ⚠️ 软件渲染时必须同时跳过下面那批强制 GPU 开关，否则它们会把 GPU 进程
-//    重新拉起来并继续崩溃（disableHardwareAcceleration 不足以覆盖它们）。
+//    重新拉起来并继续崩溃（Windows 下 disableHardwareAcceleration 不足以覆盖它们，
+//    见下方分平台处理）。
 // 手动逃生：环境变量 BHANDSMUSIC_NO_GPU=1 可强制软件渲染。
+// 标记文件内容 = **连续触发次数**（不是时间戳）。
+// 旧版本写的是 Date.now()（13 位），读取时按「已触发 1 次」兼容。
+// 连续触发达到 GPU_GUARD_MAX_TRIPS 次即认为「软件渲染兜底本身也起不来」，
+// 必须放弃兜底回到硬件路径 —— 否则应用会被永久锁死在「双击没反应」的状态
+// （真实事故：macOS 26/27 + Apple Silicon 上软件兜底里的 --in-process-gpu 会让
+//  GPU 线程 SIGTRAP 崩溃，而崩溃发生在主窗口 did-finish-load 之前，
+//  守卫标记永远清不掉，于是每次启动都走同一条必崩路径）。
+const GPU_GUARD_MAX_TRIPS = 2;
 let gpuCrashGuardTripped = false;
 let gpuCrashGuardFile = null;
 try {
   gpuCrashGuardFile = path.join(app.getPath('userData'), '.gpu-crash-guard');
   if (fs.existsSync(gpuCrashGuardFile)) {
-    gpuCrashGuardTripped = true;
-    console.warn('[GPU] 检测到上次启动 GPU 进程崩溃，本次自动切换到软件渲染');
+    let trips = parseInt(String(fs.readFileSync(gpuCrashGuardFile, 'utf8') || '').trim(), 10);
+    if (!Number.isFinite(trips) || trips < 1) trips = 1;
+    if (trips > 100) trips = 1; // 旧格式（13 位毫秒时间戳）→ 视为已触发 1 次
+    if (trips >= GPU_GUARD_MAX_TRIPS) {
+      console.warn('[GPU] 软件渲染已连续失败 ' + trips + ' 次，放弃兜底并恢复硬件加速路径');
+      gpuCrashGuardTripped = false;
+      fs.writeFileSync(gpuCrashGuardFile, '1');
+    } else {
+      gpuCrashGuardTripped = true;
+      fs.writeFileSync(gpuCrashGuardFile, String(trips + 1));
+      console.warn('[GPU] 检测到上次启动 GPU 进程崩溃，本次自动切换到软件渲染（第 ' + (trips + 1) + ' 次）');
+    }
   } else {
-    fs.writeFileSync(gpuCrashGuardFile, String(Date.now()));
+    fs.writeFileSync(gpuCrashGuardFile, '1');
   }
 } catch (e) { /* 标记不可用时按正常流程 */ }
 const forceSoftwareRendering = gpuCrashGuardTripped || process.env.BHANDSMUSIC_NO_GPU === '1';
 if (forceSoftwareRendering) {
-  // 崩溃的是「独立 GPU 进程」（FATAL: GPU process isn't usable），因此：
-  // ① 首选 in-process-gpu —— 把 GPU 并入主进程，不再有独立进程可崩；
-  // ② 同时指定 swiftshader 软件 GL 作为后端兜底；
-  // ③ 关掉 GPU 沙箱，避免沙箱层再次拉起独立 GPU 进程。
-  // 注意：这里**不能**调用 app.disableHardwareAcceleration()——它等价于 --disable-gpu，
-  // 会与 in-process-gpu 互相抵消（实测 GPU 仍被独立拉起并崩溃）。
-  app.commandLine.appendSwitch('in-process-gpu');
-  app.commandLine.appendSwitch('disable-gpu-sandbox');
-  // ② 兜底：软件渲染（若 in-process-gpu 仍不可用，Chromium 会走 swiftshader）
-  app.commandLine.appendSwitch('use-angle', 'swiftshader');
-  app.commandLine.appendSwitch('use-gl', 'swiftshader');
-  app.commandLine.appendSwitch('enable-unsafe-swiftshader');
-  app.commandLine.appendSwitch('disable-gpu-compositing');
+  if (process.platform === 'darwin') {
+    // macOS：只用官方支持的软件渲染路径（--disable-gpu）。
+    // ⚠️ 绝不能再叠加 --in-process-gpu：实测 Apple Silicon + macOS 26/27 下
+    //    GPU 线程会直接 EXC_BREAKPOINT/SIGTRAP 崩溃，应用启动即退出。
+    app.disableHardwareAcceleration();
+    app.commandLine.appendSwitch('disable-gpu-compositing');
+    app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+  } else {
+    // Windows：崩溃的是「独立 GPU 进程」（FATAL: GPU process isn't usable），因此：
+    // ① 首选 in-process-gpu —— 把 GPU 并入主进程，不再有独立进程可崩；
+    // ② 关掉 GPU 沙箱，避免沙箱层再次拉起独立 GPU 进程；
+    // ③ SwiftShader 软件 GL 兜底。注意必须写 --use-gl=angle + --use-angle=swiftshader，
+    //    旧的 --use-gl=swiftshader 在新版 Chromium 已失效，会报
+    //    "Requested GL implementation (gl=none,angle=none) not found"。
+    app.commandLine.appendSwitch('in-process-gpu');
+    app.commandLine.appendSwitch('disable-gpu-sandbox');
+    app.commandLine.appendSwitch('use-gl', 'angle');
+    app.commandLine.appendSwitch('use-angle', 'swiftshader');
+    app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+    app.commandLine.appendSwitch('disable-gpu-compositing');
+  }
   if (process.env.BHANDSMUSIC_NO_GPU === '1') console.warn('[GPU] BHANDSMUSIC_NO_GPU=1，已强制软件渲染');
 } else {
   for (const [name, value] of CHROMIUM_PERFORMANCE_SWITCHES) {
@@ -1805,7 +1847,19 @@ ipcMain.handle('bhandsmusic-open-update-installer', async (_event, filePath) => 
     }
     if (!fs.existsSync(target)) return { ok: false, error: 'UPDATE_FILE_MISSING' };
     const error = await shell.openPath(target);
-    return error ? { ok: false, error } : { ok: true };
+    if (error) return { ok: false, error };
+    // macOS：打开 dmg 只是把它挂载出来，应用并不会被替换（macOS 也不允许替换正在运行的 app）。
+    // 顺手把「应用程序」文件夹也打开，用户直接把 BhandsMusic 拖进去即可完成替换。
+    let revealedApplications = false;
+    if (process.platform === 'darwin' && /\.dmg$/i.test(target)) {
+      revealedApplications = !(await shell.openPath('/Applications'));
+    }
+    return {
+      ok: true,
+      platform: process.platform,
+      needsManualReplace: process.platform === 'darwin',
+      revealedApplications,
+    };
   } catch (e) {
     return { ok: false, error: e.message || 'OPEN_UPDATE_FAILED' };
   }
@@ -2268,12 +2322,15 @@ async function createWindow() {
   process.env.BHANDSMUSIC_UPDATE_DIR = getUpdateDownloadDir();
   process.env.BHANDSMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(app.getPath('userData'), 'cuefield-feedback.jsonl');
 
-  // 内置换源服务（go-music-api）：随包分发的 Windows 二进制，由主进程托管启动。
+  // 内置换源服务（go-music-api）：随包分发的平台原生二进制，由主进程托管启动。
   // 不 await，避免拖慢窗口创建（实测就绪约 600ms）；就绪后 go-music-service 会清掉
   // 策略可能记下的「服务离线」冷却。8080 已被用户自己的实例占用时会直接复用，不重复启动。
   const goMusicDataDir = path.join(app.getPath('userData'), 'go-music-api');
   goMusicService.ensureRunning({
-    exePath: toUnpackedPath(path.join(__dirname, '..', 'vendor', 'go-music-api', 'go-music-api.exe')),
+    exePath: toUnpackedPath(path.join(
+      __dirname, '..', 'vendor', 'go-music-api',
+      process.platform === 'win32' ? 'go-music-api.exe' : 'go-music-api'
+    )),
     dataDir: goMusicDataDir,
     logFile: path.join(goMusicDataDir, 'service.log')
   }).then((r) => {
@@ -2390,7 +2447,7 @@ async function createWindow() {
     sendWindowState(mainWindow);
     // 创建系统托盘图标
     if (!appTray) {
-      appTray = new Tray(APP_ICON_ICO);
+      appTray = new Tray(APP_ICON_TRAY);
       appTray.setToolTip(APP_NAME);
       appTray.on('click', () => {
         mainWindow.show();
@@ -2727,6 +2784,7 @@ if (!gotSingleInstanceLock) {
     closeOverlayWindows();              // 关闭覆盖层窗口
     if (appTray) { appTray.destroy(); appTray = null; } // 销毁托盘图标
     if (localServer && localServer.close) localServer.close(); // 关闭本地服务器
+    if (localServer && localServer.kugouService) localServer.kugouService.stop(); // 停止内置酷狗 API
     // 停掉内置换源服务（只杀自己启动的进程；用户自己的 Docker 实例不受影响）
     try { goMusicService.stop(); } catch (e) { /* ignore */ }
   });

@@ -396,7 +396,8 @@ const KUGOU_QUALITY_BR = { flac: 999000, '320': 320000, '128': 128000 };
 async function tryKugouLocalSongUrl(hash, albumId, timeoutMs) {
   const cred = readKugouVipCredentials();
   if (!cred || !cred.cookie) return null;
-  const ready = await kugouService.ensureRunning({ appDir: KUGOU_LOCAL_APP_DIR, dataDir: KUGOU_LOCAL_APP_DIR });
+  // dataDir 必须是可写目录（日志落点）；传 appDir 会把日志写进 app 包、破坏 macOS 签名密封
+  const ready = await kugouService.ensureRunning({ appDir: KUGOU_LOCAL_APP_DIR, dataDir: kugouService.resolveDataDir() });
   if (!ready.ok) return null;
   const qualities = ['flac', '320', '128'];
   for (let i = 0; i < qualities.length; i++) {

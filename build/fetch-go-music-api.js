@@ -1,17 +1,25 @@
 'use strict';
 
 /**
- * 拉取 go-music-api 的 Windows 二进制到 vendor/go-music-api/。
+ * 拉取 go-music-api 的对应平台二进制到 vendor/go-music-api/。
  *
  * 为什么需要这个脚本：go-music-api 是独立 Go 服务，桌面版把它作为「内置换源服务」
- * 随包分发。但项目约定 Git 不跟踪 .exe/.dll（见 docs/HANDOFF_NEXT_CHAT.md 的
+ * 随包分发。但项目约定 Git 不跟踪二进制（见 docs/HANDOFF_NEXT_CHAT.md 的
  * 高风险残留检查），所以二进制不进仓库，改为构建前按需拉取。
  *
- * 用法：
- *   node build/fetch-go-music-api.js           # 已存在且校验通过则跳过
- *   node build/fetch-go-music-api.js --force   # 强制重新下载
+ * 平台产物（默认跟随当前主机，可用 --platform/--arch 交叉拉取）：
+ *   win32  x64   → go-music-api_windows_amd64.zip    → go-music-api.exe
+ *   darwin arm64 → go-music-api_darwin_arm64.tar.gz  → go-music-api
+ *   darwin x64   → go-music-api_darwin_amd64.tar.gz  → go-music-api
+ *   linux  x64   → go-music-api_linux_amd64.tar.gz   → go-music-api
+ *   linux  arm64 → go-music-api_linux_arm64.tar.gz   → go-music-api
  *
- * 由 package.json 的 prebuild:win / prebuild:win:dir 自动调用。
+ * 用法：
+ *   node build/fetch-go-music-api.js                 # 已存在且校验通过则跳过
+ *   node build/fetch-go-music-api.js --force         # 强制重新下载
+ *   node build/fetch-go-music-api.js --platform darwin --arch arm64
+ *
+ * 由 package.json 的 prebuild:win / prebuild:win:dir / prebuild:mac 自动调用。
  */
 
 const fs = require('fs');
@@ -20,27 +28,81 @@ const zlib = require('zlib');
 const crypto = require('crypto');
 
 const VERSION = 'v1.0.1';
-const ASSET = 'go-music-api_windows_amd64.zip';
-/** 官方 Release 页公布的 sha256（releases/download/<tag>/go-music-api_checksums.txt） */
-const ZIP_SHA256 = 'ef9c1585991469cf4df918111cc3f622a64dec8c2d91749820d19567853687f5';
-const RAW_URL = 'https://github.com/guohuiyuan/go-music-api/releases/download/' + VERSION + '/' + ASSET;
+const RELEASE_BASE = 'https://github.com/guohuiyuan/go-music-api/releases/download/' + VERSION + '/';
+const CHECKSUMS_ASSET = 'go-music-api_checksums.txt';
 
 /**
- * 下载候选：直连 + 国内镜像回退（沿用 package.json 里 bhandsmusic.update.mirrors 的约定）。
+ * 下载候选前缀：直连 + 国内镜像回退（沿用 package.json 里 bhandsmusic.update.mirrors 的约定）。
  * 实测 GitHub Release 的 CDN 在国内经常 UND_ERR_CONNECT_TIMEOUT，镜像通常更快。
  */
-const CANDIDATES = [
-  RAW_URL,
-  'https://gh-proxy.com/' + RAW_URL,
-  'https://ghfast.top/' + RAW_URL,
-  'https://gh.llkk.cc/' + RAW_URL
-];
+const MIRROR_PREFIXES = ['', 'https://gh-proxy.com/', 'https://ghfast.top/', 'https://gh.llkk.cc/'];
+
+/**
+ * 各平台目标产物。sha256 为官方 Release 页公布的校验值
+ * （releases/download/<tag>/go-music-api_checksums.txt），
+ * 运行时仍会优先用在线校验和文件覆盖，硬编码值只作离线兜底。
+ */
+const TARGETS = {
+  'win32-x64': {
+    asset: 'go-music-api_windows_amd64.zip',
+    kind: 'zip',
+    out: 'go-music-api.exe',
+    mode: 0o644,
+    sha256: 'ef9c1585991469cf4df918111cc3f622a64dec8c2d91749820d19567853687f5'
+  },
+  'darwin-arm64': {
+    asset: 'go-music-api_darwin_arm64.tar.gz',
+    kind: 'targz',
+    out: 'go-music-api',
+    mode: 0o755,
+    sha256: '051886172a5ba20b0812289a557951fff298639fc0403f5e534a21540ce21038'
+  },
+  'darwin-x64': {
+    asset: 'go-music-api_darwin_amd64.tar.gz',
+    kind: 'targz',
+    out: 'go-music-api',
+    mode: 0o755,
+    sha256: 'bad64165b1eaad1845781fd594bf3355daa52f70c79030693a18df5ca531b6db'
+  },
+  'linux-x64': {
+    asset: 'go-music-api_linux_amd64.tar.gz',
+    kind: 'targz',
+    out: 'go-music-api',
+    mode: 0o755,
+    sha256: 'd167244301232d17fb446de545193ed50c9829b08fc513447a408c51a029e43d'
+  },
+  'linux-arm64': {
+    asset: 'go-music-api_linux_arm64.tar.gz',
+    kind: 'targz',
+    out: 'go-music-api',
+    mode: 0o755,
+    sha256: 'dfda44ab79f1306c38888445e5a177e0a7af5f299bbaa6001c387d1f5d361d24'
+  }
+};
 
 const OUT_DIR = path.join(__dirname, '..', 'vendor', 'go-music-api');
-const OUT_EXE = path.join(OUT_DIR, 'go-music-api.exe');
 
 function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest('hex');
+}
+
+function argValue(name) {
+  const i = process.argv.indexOf(name);
+  return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : '';
+}
+
+/** 解析目标平台/架构（默认跟随主机） */
+function resolveTarget() {
+  const platform = (argValue('--platform') || process.platform).toLowerCase();
+  const arch = (argValue('--arch') || process.arch).toLowerCase();
+  // Node 里 x86_64 不会出现，但统一一下更稳
+  const normalizedArch = arch === 'x86_64' ? 'x64' : arch;
+  const key = platform + '-' + normalizedArch;
+  const target = TARGETS[key];
+  if (!target) {
+    throw new Error('不支持的平台组合: ' + key + '（可选: ' + Object.keys(TARGETS).join(', ') + '）');
+  }
+  return { platform, arch: normalizedArch, key, target };
 }
 
 /**
@@ -90,25 +152,89 @@ function extractFromZip(zip, suffix) {
 }
 
 /**
+ * 从 tar.gz 里取出可执行文件的内容（goreleaser 的 darwin/linux 产物）。
+ *
+ * 归档里除了二进制还带 LICENSE / README.md，所以不能简单地取第一个普通文件：
+ * 优先按 basename 精确匹配期望的可执行文件名，其次取"带可执行位且最大"的文件，
+ * 最后才退化为最大的普通文件。
+ *
+ * 只实现 ustar 头部解析：跳过目录与 pax/gnu 扩展头，取 typeFlag 为 0 的条目。
+ * @param {Buffer} gz
+ * @param {string} [preferredName] - 期望的可执行文件名，如 'go-music-api'
+ * @returns {{name: string, size: number, data: Buffer}}
+ */
+function extractFromTarGz(gz, preferredName) {
+  const tar = zlib.gunzipSync(gz);
+  const BLOCK = 512;
+  const files = [];
+  let offset = 0;
+
+  while (offset + BLOCK <= tar.length) {
+    const header = tar.subarray(offset, offset + BLOCK);
+    // 两个连续的全零块表示归档结束
+    if (header.every((b) => b === 0)) break;
+
+    const name = header.toString('utf8', 0, 100).replace(/\0.*$/, '');
+    const modeField = header.toString('utf8', 100, 108).replace(/\0.*$/, '').trim();
+    const sizeField = header.toString('utf8', 124, 136).replace(/\0.*$/, '').trim();
+    const mode = parseInt(modeField, 8) || 0;
+    const size = parseInt(sizeField, 8) || 0;
+    const typeFlag = String.fromCharCode(header[156]);
+    const dataStart = offset + BLOCK;
+    const isRegularFile = typeFlag === '0' || typeFlag === '\0' || typeFlag === '';
+
+    if (isRegularFile && size > 0) {
+      files.push({
+        name: name.split('/').pop(),
+        size,
+        mode,
+        data: Buffer.from(tar.subarray(dataStart, dataStart + size))
+      });
+    }
+    offset = dataStart + Math.ceil(size / BLOCK) * BLOCK;
+  }
+
+  if (!files.length) throw new Error('tar.gz 里没有找到可执行文件');
+
+  const byName = preferredName ? files.find((f) => f.name === preferredName) : null;
+  if (byName) return byName;
+
+  const byExecBit = files
+    .filter((f) => (f.mode & 0o111) !== 0)
+    .sort((a, b) => b.size - a.size)[0];
+  if (byExecBit) return byExecBit;
+
+  return files.sort((a, b) => b.size - a.size)[0];
+}
+
+/** 单次下载（超时交给 fetch 自身的连接超时兜住） */
+async function fetchOnce(url) {
+  const resp = await fetch(url, { redirect: 'follow' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return Buffer.from(await resp.arrayBuffer());
+}
+
+/**
  * 按候选顺序下载（每个候选重试 2 次）。
  * 注意：不做整体超时上限——镜像转存大文件可能耗时 1 分钟以上，
  * 连接阶段的失败由系统 connect timeout（约 10s）自然兜住。
  */
-async function downloadWithFallback() {
+async function downloadWithFallback(asset) {
+  const pathPart = RELEASE_BASE + asset;
   let lastErr = null;
-  for (const url of CANDIDATES) {
+  for (const prefix of MIRROR_PREFIXES) {
+    const url = prefix + pathPart;
     for (let attempt = 1; attempt <= 2; attempt++) {
       const t0 = Date.now();
       try {
-        const resp = await fetch(url, { redirect: 'follow' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const buf = Buffer.from(await resp.arrayBuffer());
+        const buf = await fetchOnce(url);
         console.log('[fetch-go-music-api] 下载成功（' + (Date.now() - t0) + 'ms，' + (buf.length / 1048576).toFixed(1) + ' MB）');
         return buf;
       } catch (e) {
         lastErr = e;
         const cause = e && e.cause && (e.cause.code || e.cause.message);
-        console.warn('[fetch-go-music-api] 失败 ' + url + ' (第 ' + attempt + '/2 次): ' + e.message + (cause ? ' (' + cause + ')' : ''));
+        const label = prefix ? prefix : '(直连) ';
+        console.warn('[fetch-go-music-api] 失败 ' + label + ' (第 ' + attempt + '/2 次): ' + e.message + (cause ? ' (' + cause + ')' : ''));
         if (attempt < 2) await new Promise((r) => setTimeout(r, 1200));
       }
     }
@@ -116,30 +242,59 @@ async function downloadWithFallback() {
   throw lastErr || new Error('所有下载地址均失败');
 }
 
+/**
+ * 解析官方 checksums 文件，取指定产物的 sha256。
+ * 拿不到就返回 null，由调用方回退到脚本内硬编码值。
+ * @returns {Promise<string|null>}
+ */
+async function resolveExpectedSha256(asset) {
+  try {
+    const text = (await downloadWithFallback(CHECKSUMS_ASSET)).toString('utf8');
+    for (const line of text.split(/\r?\n/)) {
+      const m = line.trim().match(/^([0-9a-f]{64})\s+\*?(.+)$/i);
+      if (m && m[2].trim() === asset) return m[1].toLowerCase();
+    }
+    console.warn('[fetch-go-music-api] 在线校验和里没有 ' + asset + '，改用脚本内置值');
+  } catch (e) {
+    console.warn('[fetch-go-music-api] 校验和文件获取失败（' + e.message + '），改用脚本内置值');
+  }
+  return null;
+}
+
 async function main() {
   const force = process.argv.includes('--force');
+  const { key, target } = resolveTarget();
+  const outFile = path.join(OUT_DIR, target.out);
 
-  if (!force && fs.existsSync(OUT_EXE)) {
-    const size = fs.statSync(OUT_EXE).size;
-    console.log('[fetch-go-music-api] 已存在，跳过下载: ' + OUT_EXE + ' (' + (size / 1048576).toFixed(1) + ' MB)');
+  console.log('[fetch-go-music-api] 目标平台: ' + key + ' → ' + target.asset);
+
+  if (!force && fs.existsSync(outFile)) {
+    const size = fs.statSync(outFile).size;
+    console.log('[fetch-go-music-api] 已存在，跳过下载: ' + outFile + ' (' + (size / 1048576).toFixed(1) + ' MB)');
     console.log('[fetch-go-music-api] 如需强制更新请加 --force');
     return;
   }
 
-  console.log('[fetch-go-music-api] 开始下载（' + CANDIDATES.length + ' 个地址回退）…');
-  const zip = await downloadWithFallback();
+  const expected = (await resolveExpectedSha256(target.asset)) || target.sha256;
+  console.log('[fetch-go-music-api] 开始下载（' + MIRROR_PREFIXES.length + ' 个地址回退）…');
+  const archive = await downloadWithFallback(target.asset);
   console.log('[fetch-go-music-api] 校验 sha256…');
 
-  const got = sha256(zip);
-  if (got !== ZIP_SHA256) {
-    throw new Error('sha256 不匹配！\n  期望 ' + ZIP_SHA256 + '\n  实际 ' + got + '\n  已中止，未写入任何文件。');
+  const got = sha256(archive);
+  if (got !== expected) {
+    throw new Error('sha256 不匹配！\n  期望 ' + expected + '\n  实际 ' + got + '\n  已中止，未写入任何文件。');
   }
   console.log('[fetch-go-music-api] sha256 校验通过');
 
-  const exe = extractFromZip(zip, '.exe');
+  const binary = target.kind === 'zip'
+    ? extractFromZip(archive, '.exe')
+    : extractFromTarGz(archive, target.out).data;
+
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  fs.writeFileSync(OUT_EXE, exe);
-  console.log('[fetch-go-music-api] 已写入 ' + OUT_EXE + ' (' + (exe.length / 1048576).toFixed(1) + ' MB)');
+  fs.writeFileSync(outFile, binary, { mode: target.mode });
+  // writeFileSync 的 mode 只在新建文件时生效；显式再设一次，保证覆盖场景下也有可执行位
+  fs.chmodSync(outFile, target.mode);
+  console.log('[fetch-go-music-api] 已写入 ' + outFile + ' (' + (binary.length / 1048576).toFixed(1) + ' MB)');
 }
 
 main().catch((e) => {

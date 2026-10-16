@@ -16,6 +16,7 @@
 
 const { spawn } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 /** 内置服务的监听地址 */
@@ -72,6 +73,31 @@ function waitReady(getExitInfo) {
   });
 }
 
+/**
+ * 内置酷狗 API 的**可写**数据目录（日志、运行态文件）。
+ *
+ * ⚠️ 绝不能落在 appDir（vendor/kugou-api，即 app 包内部）：
+ *    打包后向已签名的 .app 里写文件会破坏 macOS 代码签名密封，
+ *    `codesign --verify` 报 "a sealed resource is missing or invalid"，
+ *    并可能被 Gatekeeper/amfid 拒绝启动。历史上 kugou-api.log 就是这样
+ *    被写进 Contents/Resources/app.asar.unpacked/vendor/kugou-api/ 的。
+ *
+ * Electron 环境用 userData/kugou-api；独立 Node / 测试环境退到系统临时目录。
+ */
+function resolveDataDir() {
+  try {
+    const { app } = require('electron');
+    if (app && typeof app.getPath === 'function') {
+      const dir = path.join(app.getPath('userData'), 'kugou-api');
+      fs.mkdirSync(dir, { recursive: true });
+      return dir;
+    }
+  } catch (e) { /* 非 Electron 环境，走临时目录 */ }
+  const dir = path.join(os.tmpdir(), 'bhandsmusic-kugou-api');
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) { /* ignore */ }
+  return dir;
+}
+
 function openLog(logFile) {
   try {
     fs.mkdirSync(path.dirname(logFile), { recursive: true });
@@ -81,8 +107,8 @@ function openLog(logFile) {
   }
 }
 
-/** 剥离代理变量 + 设置概念版平台与端口 */
-function buildEnv() {
+/** 剥离代理变量 + 设置概念版平台与端口；Electron 自带 Node 时启用 RUN_AS_NODE */
+function buildEnv(useElectronNode) {
   const env = Object.assign({}, process.env);
   delete env.HTTP_PROXY; delete env.HTTPS_PROXY;
   delete env.http_proxy; delete env.https_proxy;
@@ -90,6 +116,7 @@ function buildEnv() {
   env.platform = 'lite';
   env.PORT = '3656';
   env.HOST = '127.0.0.1';
+  if (useElectronNode) env.ELECTRON_RUN_AS_NODE = '1';
   return env;
 }
 
@@ -122,22 +149,34 @@ async function ensureRunning(opts) {
     return { ok: false, url: SERVICE_URL, spawned: false, reason: msg };
   }
 
-  logFd = openLog(options.logFile || path.join(options.dataDir || appDir, 'kugou-api.log'));
+  // 日志路径兜底：调用方若把 dataDir / logFile 指到 appDir（app 包内部），一律改到可写目录。
+  // 向已签名的 .app 写文件会破坏 macOS 代码签名密封（详见 resolveDataDir 注释）。
+  let logFile = options.logFile || path.join(options.dataDir || appDir, 'kugou-api.log');
+  if (appDir && path.resolve(logFile).indexOf(path.resolve(appDir) + path.sep) === 0) {
+    logFile = path.join(resolveDataDir(), 'kugou-api.log');
+  }
+  logFd = openLog(logFile);
 
   let exitInfo = null;
   try {
     // node 可执行文件的解析顺序：
     //   1. KUGOU_NODE_EXE / 传入的 nodeExe（显式指定）
     //   2. vendor/kugou-api/node.exe（fetch 脚本 --with-node 拉取的便携版，分发场景）
-    //   3. PATH 上的 'node'（开发态 npm start 场景）
+    //   3. 打包应用的 Electron 运行时（ELECTRON_RUN_AS_NODE，不要求用户安装 Node）
+    //   4. PATH 上的 'node'（开发态独立 Node 场景）
     let nodeExe = options.nodeExe || '';
     if (!nodeExe) {
       const vendored = path.join(appDir, 'node.exe');
       if (fs.existsSync(vendored)) nodeExe = vendored;
     }
+    let useElectronNode = false;
+    if (!nodeExe && process.versions.electron) {
+      nodeExe = process.execPath;
+      useElectronNode = true;
+    }
     child = spawn(nodeExe || 'node', [appEntry], {
       cwd: appDir,
-      env: buildEnv(),
+      env: buildEnv(useElectronNode),
       stdio: ['ignore', logFd == null ? 'ignore' : logFd, logFd == null ? 'ignore' : logFd],
       windowsHide: true
     });
@@ -238,6 +277,7 @@ module.exports = {
   apiGetWithMeta,
   isKugouApi,
   apiGet,
+  resolveDataDir,
   stop,
   getStatus
 };
