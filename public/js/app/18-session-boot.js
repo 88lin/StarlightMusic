@@ -22,7 +22,7 @@
 //  - 启动时重建队列：在线曲按 id/provider 重建，本地曲经本地库重新挂 localUrl（token 每次会话轮换，不落盘）
 //  - 不自动播放；用户按下播放时若命中原曲则从保存的进度续播（走 playQueueAt 内置 opts.resumeAt）
 // ============================================================
-var LAST_SESSION_STORE_KEY = 'bhandsmusic_last_session_v1';
+var LAST_SESSION_STORE_KEY = 'starlightmusic_last_session_v1';
 var LAST_SESSION_QUEUE_MAX = 200;
 var lastSessionSaveTimer = null;
 var lastSessionPosSaveAt = 0;
@@ -231,15 +231,15 @@ async function restoreLastPlaybackSession() {
 //  - 解析/换源全程静默（showSourceFallbackNotice 抑制）；失败指数退避重试，
 //    同曲连败自动跳下一首；放弃后恢复态展示保持，可手动点播放
 // ============================================================
-var STARTUP_AUTOPLAY_STORE_KEY = 'bhandsmusic_startup_autoplay_v1';
+var STARTUP_AUTOPLAY_STORE_KEY = 'starlightmusic_startup_autoplay_v1';
 var startupAutoplayPreference = readBooleanPreference(STARTUP_AUTOPLAY_STORE_KEY, false);
 
 // 秒启动跳过启动页（移植自上游 t-startupFastSkip）
-var STARTUP_FAST_SKIP_STORE_KEY = 'bhandsmusic_startup_fast_skip_v1';
+var STARTUP_FAST_SKIP_STORE_KEY = 'starlightmusic_startup_fast_skip_v1';
 var startupFastSkipPreference = readBooleanPreference(STARTUP_FAST_SKIP_STORE_KEY, false);
 
 // 恢复播放位置（移植自上游 startup-resume-mode-seg）：resume=按上次进度 / restart=重播整首
-var STARTUP_RESUME_MODE_STORE_KEY = 'bhandsmusic_startup_resume_mode_v1';
+var STARTUP_RESUME_MODE_STORE_KEY = 'starlightmusic_startup_resume_mode_v1';
 function normalizeStartupResumeMode(value) { return value === 'restart' ? 'restart' : 'resume'; }
 var startupResumeModePreference = (function () {
   try { return normalizeStartupResumeMode(localStorage.getItem(STARTUP_RESUME_MODE_STORE_KEY) || 'resume'); }
@@ -734,7 +734,7 @@ function scheduleNextSongPreparse() {
 //  - 会员源解析经常失败/降级浪费时间时，可切"第三方优先"直接跳过官方请求；
 //  - auto 模式带会话级自动降级：官方解析失败 1 次后，本会话内该平台改走第三方优先
 // ============================================================
-var SOURCE_PARSE_ORDER_STORE_KEY = 'bhandsmusic_source_parse_order_v1';
+var SOURCE_PARSE_ORDER_STORE_KEY = 'starlightmusic_source_parse_order_v1';
 var sourceParseOrder = (function () {
   try {
     var raw = String(localStorage.getItem(SOURCE_PARSE_ORDER_STORE_KEY) || '').toLowerCase();
@@ -886,7 +886,7 @@ var renderPerfState = {
   lastRenderAt: 0,
   lastSampleAt: performance.now()
 };
-window.__bhandsmusicPerf = renderPerfState;
+window.__starlightmusicPerf = renderPerfState;
 var splashWarmRenderLast = 0;
 function isMainSceneCoveredBySplash() {
   return document.body.classList.contains('splash-active') && !document.body.classList.contains('splash-revealing');

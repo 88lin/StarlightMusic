@@ -19,7 +19,7 @@ fs.mkdirSync(TMP, { recursive: true });
 
 process.env.PORT = '3999';
 process.env.HOST = '127.0.0.1';
-process.env.BHANDSMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(TMP, 'cuefield-feedback.jsonl');
+process.env.STARLIGHTMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(TMP, 'cuefield-feedback.jsonl');
 
 const http = require('http');
 const server = require(path.join(__dirname, '..', 'server', 'server.js'));

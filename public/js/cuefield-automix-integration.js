@@ -2,7 +2,7 @@
 // Cuefield AutoMix · 播放集成（StarlightMusic fork 适配版）
 // 移植自上游 Mineradio 2.2.0 的 18-cuefield-automix-integration.js。
 // fork 适配点（与上游的差异，其余逐行同源）：
-//   1. localStorage 键品牌化：bhandsmusic-cuefield-automix-v1
+//   1. localStorage 键品牌化：starlightmusic-cuefield-automix-v1
 //   2. writeAudioOutputGain → 对接 fork 的输出增益系统 setAudioOutputGainImmediate
 //      （fork 主 audio 走 WebAudio gainNode，rampAudioOutputGain/currentAudioOutputGain 同名复用）
 //   3. 歌词获取改走 fork 的 /api/lyric 与 /api/qq/lyric（fork 无 persistentLyricCache 体系）
@@ -14,7 +14,7 @@
 // 加载失败或缺失依赖时，功能静默不生效，绝不影响正常播放。
 // ============================================================================
 
-var CUEFIELD_AUTOMIX_STORE_KEY = 'bhandsmusic-cuefield-automix-v1';
+var CUEFIELD_AUTOMIX_STORE_KEY = 'starlightmusic-cuefield-automix-v1';
 var cuefieldAutoMixEnabled = false;
 var cuefieldAutoMix = null;
 var cuefieldAutoMixPrepareTimer = 0;

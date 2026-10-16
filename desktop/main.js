@@ -77,7 +77,7 @@ const MIN_WINDOWED_HEIGHT = 540;      // 窗口最小高度
 
 // ==================== 应用信息常量 ====================
 const APP_NAME = 'StarlightMusic';                                   // 应用名称
-const APP_USER_MODEL_ID = 'com.bhandsmusic.desktop';              // Windows 任务栏分组标识
+const APP_USER_MODEL_ID = 'com.starlightmusic.desktop';              // Windows 任务栏分组标识
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico'); // 应用图标路径（Windows）
 /**
  * 托盘图标路径。
@@ -90,9 +90,9 @@ const APP_ICON_TRAY = path.join(
 );
 
 // ==================== 音乐平台登录配置 ====================
-const NETEASE_LOGIN_PARTITION = 'persist:bhandsmusic-netease-login'; // 网易云登录的 session 分区（持久化）
+const NETEASE_LOGIN_PARTITION = 'persist:starlightmusic-netease-login'; // 网易云登录的 session 分区（持久化）
 const NETEASE_LOGIN_URL = 'https://music.163.com/#/login';        // 网易云登录页地址
-const QQ_LOGIN_PARTITION = 'persist:bhandsmusic-qqmusic-login';     // QQ 音乐登录的 session 分区（持久化）
+const QQ_LOGIN_PARTITION = 'persist:starlightmusic-qqmusic-login';     // QQ 音乐登录的 session 分区（持久化）
 const QQ_LOGIN_URL = 'https://y.qq.com/n/ryqq/profile';           // QQ 音乐登录页地址
 
 // 登录页会请求但已失效/无用的边缘域名（2026-10-08 实测：TLS 握手被对端直接断开，
@@ -149,7 +149,7 @@ if (process.platform === 'win32') {
 // ⚠️ 软件渲染时必须同时跳过下面那批强制 GPU 开关，否则它们会把 GPU 进程
 //    重新拉起来并继续崩溃（Windows 下 disableHardwareAcceleration 不足以覆盖它们，
 //    见下方分平台处理）。
-// 手动逃生：环境变量 BHANDSMUSIC_NO_GPU=1 可强制软件渲染。
+// 手动逃生：环境变量 STARLIGHTMUSIC_NO_GPU=1 可强制软件渲染。
 // 标记文件内容 = **连续触发次数**（不是时间戳）。
 // 旧版本写的是 Date.now()（13 位），读取时按「已触发 1 次」兼容。
 // 连续触发达到 GPU_GUARD_MAX_TRIPS 次即认为「软件渲染兜底本身也起不来」，
@@ -179,7 +179,7 @@ try {
     fs.writeFileSync(gpuCrashGuardFile, '1');
   }
 } catch (e) { /* 标记不可用时按正常流程 */ }
-const forceSoftwareRendering = gpuCrashGuardTripped || process.env.BHANDSMUSIC_NO_GPU === '1';
+const forceSoftwareRendering = gpuCrashGuardTripped || process.env.STARLIGHTMUSIC_NO_GPU === '1';
 if (forceSoftwareRendering) {
   if (process.platform === 'darwin') {
     // macOS：只用官方支持的软件渲染路径（--disable-gpu）。
@@ -202,7 +202,7 @@ if (forceSoftwareRendering) {
     app.commandLine.appendSwitch('enable-unsafe-swiftshader');
     app.commandLine.appendSwitch('disable-gpu-compositing');
   }
-  if (process.env.BHANDSMUSIC_NO_GPU === '1') console.warn('[GPU] BHANDSMUSIC_NO_GPU=1，已强制软件渲染');
+  if (process.env.STARLIGHTMUSIC_NO_GPU === '1') console.warn('[GPU] STARLIGHTMUSIC_NO_GPU=1，已强制软件渲染');
 } else {
   for (const [name, value] of CHROMIUM_PERFORMANCE_SWITCHES) {
     if (value == null) app.commandLine.appendSwitch(name);
@@ -356,7 +356,7 @@ function verifyServerIdentity(port) {
       try {
         const http = require('http');
         const req = http.request({ host: '127.0.0.1', port: port, path: '/__bhands_identity', method: 'GET', timeout: 2500 }, (res) => {
-          const ok = res.statusCode === 200 && !!res.headers['x-bhandsmusic-server'];
+          const ok = res.statusCode === 200 && !!res.headers['x-starlightmusic-server'];
           res.resume();
           done(ok);
         });
@@ -417,7 +417,7 @@ function sendWindowState(win) {
  */
 function sendGlobalHotkeyAction(action) {
   if (!mainWindow || mainWindow.isDestroyed() || !action) return;
-  mainWindow.webContents.send('bhandsmusic-global-hotkey', { action });
+  mainWindow.webContents.send('starlightmusic-global-hotkey', { action });
 }
 
 // ==================== 全局快捷键管理 ====================
@@ -616,7 +616,7 @@ function getUpdateDownloadDir() {
  * 但从未接到任何 IPC 通道（前端也搜不到调用），属于设计后未接入的死代码。
  * 快捷方式实际由 NSIS 安装器创建 —— 见 package.json 的
  * `"createDesktopShortcut": true` / `"createStartMenuShortcut": true` / `"shortcutName"`。
- * 2026-09-23 一并移除（含 BHANDSMUSIC_NO_DESKTOP_SHORTCUT / BHANDSMUSIC_CREATE_DESKTOP_SHORTCUT 两个开关）。 */
+ * 2026-09-23 一并移除（含 STARLIGHTMUSIC_NO_DESKTOP_SHORTCUT / STARLIGHTMUSIC_CREATE_DESKTOP_SHORTCUT 两个开关）。 */
 
 // ==================== Cookie 工具函数 ====================
 
@@ -1368,7 +1368,7 @@ function stopDesktopLyricsMousePoller() {
 function broadcastDesktopLyricsLockState() {
   const locked = desktopLyricsState.clickThrough !== false;
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('bhandsmusic-desktop-lyrics-lock-state', { locked });
+    mainWindow.webContents.send('starlightmusic-desktop-lyrics-lock-state', { locked });
   }
   sendDesktopLyricsState();
 }
@@ -1379,7 +1379,7 @@ function broadcastDesktopLyricsLockState() {
  */
 function broadcastDesktopLyricsEnabledState(enabled) {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('bhandsmusic-desktop-lyrics-enabled-state', { enabled: !!enabled });
+    mainWindow.webContents.send('starlightmusic-desktop-lyrics-enabled-state', { enabled: !!enabled });
   }
 }
 
@@ -1402,7 +1402,7 @@ function positionDesktopLyricsWindow(payload = desktopLyricsState, options = {})
 /** 向歌词渲染进程发送当前歌词状态 */
 function sendDesktopLyricsState() {
   if (!desktopLyricsWindow || desktopLyricsWindow.isDestroyed()) return;
-  desktopLyricsWindow.webContents.send('bhandsmusic-desktop-lyrics-state', desktopLyricsState);
+  desktopLyricsWindow.webContents.send('starlightmusic-desktop-lyrics-state', desktopLyricsState);
 }
 
 // ==================== 桌面歌词窗口生命周期 ====================
@@ -1585,7 +1585,7 @@ function positionWallpaperWindow() {
 /** 向壁纸渲染进程发送当前壁纸状态 */
 function sendWallpaperState() {
   if (!wallpaperWindow || wallpaperWindow.isDestroyed()) return;
-  wallpaperWindow.webContents.send('bhandsmusic-wallpaper-state', wallpaperState);
+  wallpaperWindow.webContents.send('starlightmusic-wallpaper-state', wallpaperState);
 }
 
 /**
@@ -1689,8 +1689,8 @@ async function walkDirSize(dirPath, depth = 0) {
   return total;
 }
 
-ipcMain.handle('bhandsmusic-cache-get-info', async () => {
-  const beatmapsDir = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
+ipcMain.handle('starlightmusic-cache-get-info', async () => {
+  const beatmapsDir = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
   const cacheRoot = path.dirname(beatmapsDir);
   const userDataPath = app.getPath('userData');
   const networkCachePath = path.join(userDataPath, 'Cache');
@@ -1707,9 +1707,9 @@ ipcMain.handle('bhandsmusic-cache-get-info', async () => {
   };
 });
 
-ipcMain.handle('bhandsmusic-cache-open-path', async (_event, targetPath) => {
+ipcMain.handle('starlightmusic-cache-open-path', async (_event, targetPath) => {
   // 安全校验：只允许打开缓存面板返回过的目录（节拍缓存根 / userData）
-  const beatmapsDir = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
+  const beatmapsDir = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
   const allowed = [path.dirname(beatmapsDir), app.getPath('userData')];
   const p = String(targetPath || '');
   if (!allowed.some((root) => p === root || p.startsWith(root + path.sep))) {
@@ -1759,7 +1759,7 @@ ipcMain.handle('desktop-window-close', (event) => {
 // ==================== IPC 处理器：全局快捷键 ====================
 
 /** 配置全局快捷键绑定 */
-ipcMain.handle('bhandsmusic-hotkeys-configure-global', (_event, bindings) => {
+ipcMain.handle('starlightmusic-hotkeys-configure-global', (_event, bindings) => {
   return configureStarlightMusicGlobalHotkeys(bindings);
 });
 
@@ -1769,10 +1769,10 @@ ipcMain.handle('bhandsmusic-hotkeys-configure-global', (_event, bindings) => {
  * 导出 JSON 文件（弹出保存对话框）
  * @param {object} payload - { defaultName: string, text?: string, data?: object }
  */
-ipcMain.handle('bhandsmusic-export-json-file', async (event, payload = {}) => {
+ipcMain.handle('starlightmusic-export-json-file', async (event, payload = {}) => {
   try {
     const owner = getSenderWindow(event);
-    const defaultName = String(payload.defaultName || 'bhandsmusic-export.json').replace(/[\\/:*?"<>|]+/g, '-');
+    const defaultName = String(payload.defaultName || 'starlightmusic-export.json').replace(/[\\/:*?"<>|]+/g, '-');
     const result = await dialog.showSaveDialog(owner, {
       title: '导出 StarlightMusic 存档',
       defaultPath: defaultName.toLowerCase().endsWith('.json') ? defaultName : `${defaultName}.json`,
@@ -1791,7 +1791,7 @@ ipcMain.handle('bhandsmusic-export-json-file', async (event, payload = {}) => {
  * 导入 JSON 文件（弹出打开对话框）
  * @returns {{ok: boolean, filePath?: string, text?: string}}
  */
-ipcMain.handle('bhandsmusic-import-json-file', async (event) => {
+ipcMain.handle('starlightmusic-import-json-file', async (event) => {
   try {
     const owner = getSenderWindow(event);
     const result = await dialog.showOpenDialog(owner, {
@@ -1837,7 +1837,7 @@ ipcMain.handle('qq-music-clear-login', async () => {
  * 安全校验：路径必须在更新目录内，防止任意文件执行
  * @param {string} filePath - 更新安装包路径
  */
-ipcMain.handle('bhandsmusic-open-update-installer', async (_event, filePath) => {
+ipcMain.handle('starlightmusic-open-update-installer', async (_event, filePath) => {
   try {
     const target = path.resolve(String(filePath || ''));
     const updateDir = path.resolve(getUpdateDownloadDir());
@@ -1866,7 +1866,7 @@ ipcMain.handle('bhandsmusic-open-update-installer', async (_event, filePath) => 
 });
 
 /** 重启应用 */
-ipcMain.handle('bhandsmusic-restart-app', async () => {
+ipcMain.handle('starlightmusic-restart-app', async () => {
   try {
     app.relaunch();
     app.exit(0);
@@ -1879,7 +1879,7 @@ ipcMain.handle('bhandsmusic-restart-app', async () => {
 // ==================== IPC 处理器：桌面歌词 ====================
 
 /** 启用/禁用桌面歌词 */
-ipcMain.handle('bhandsmusic-desktop-lyrics-set-enabled', async (_event, enabled, payload) => {
+ipcMain.handle('starlightmusic-desktop-lyrics-set-enabled', async (_event, enabled, payload) => {
   try {
     if (enabled) {
       createDesktopLyricsWindow(payload || {});
@@ -1894,7 +1894,7 @@ ipcMain.handle('bhandsmusic-desktop-lyrics-set-enabled', async (_event, enabled,
 });
 
 /** 更新桌面歌词配置（透明度、位置、锁定状态等） */
-ipcMain.handle('bhandsmusic-desktop-lyrics-update', async (_event, payload) => {
+ipcMain.handle('starlightmusic-desktop-lyrics-update', async (_event, payload) => {
   try {
     const nextState = { ...desktopLyricsState, ...(payload || {}) };
     if (nextState.enabled) {
@@ -1912,12 +1912,12 @@ ipcMain.handle('bhandsmusic-desktop-lyrics-update', async (_event, payload) => {
 });
 
 /** 设置歌词窗口拖拽状态（预留接口） */
-ipcMain.handle('bhandsmusic-desktop-lyrics-set-dragging', async () => {
+ipcMain.handle('starlightmusic-desktop-lyrics-set-dragging', async () => {
   return { ok: true };
 });
 
 /** 设置鼠标指针捕获状态（解锁时需要捕获以响应交互） */
-ipcMain.handle('bhandsmusic-desktop-lyrics-set-pointer-capture', async (_event, active) => {
+ipcMain.handle('starlightmusic-desktop-lyrics-set-pointer-capture', async (_event, active) => {
   try {
     desktopLyricsPointerCapture = !!active;
     applyDesktopLyricsMouseBehavior();
@@ -1928,7 +1928,7 @@ ipcMain.handle('bhandsmusic-desktop-lyrics-set-pointer-capture', async (_event, 
 });
 
 /** 设置歌词窗口的可交互热区（相对窗口坐标） */
-ipcMain.handle('bhandsmusic-desktop-lyrics-set-hot-bounds', async (_event, bounds) => {
+ipcMain.handle('starlightmusic-desktop-lyrics-set-hot-bounds', async (_event, bounds) => {
   try {
     const left = clampNumber(bounds && bounds.left, -2000, 4000, 0);
     const top = clampNumber(bounds && bounds.top, -2000, 4000, 0);
@@ -1942,7 +1942,7 @@ ipcMain.handle('bhandsmusic-desktop-lyrics-set-hot-bounds', async (_event, bound
 });
 
 /** 设置歌词窗口锁定状态（锁定=点击穿透，解锁=可交互） */
-ipcMain.handle('bhandsmusic-desktop-lyrics-set-lock-state', async (_event, locked) => {
+ipcMain.handle('starlightmusic-desktop-lyrics-set-lock-state', async (_event, locked) => {
   try {
     desktopLyricsState = { ...desktopLyricsState, clickThrough: !!locked };
     if (desktopLyricsState.clickThrough !== false) desktopLyricsPointerCapture = false;
@@ -1955,7 +1955,7 @@ ipcMain.handle('bhandsmusic-desktop-lyrics-set-lock-state', async (_event, locke
 });
 
 /** 移动歌词窗口（相对偏移量，限制单次最大 160px） */
-ipcMain.handle('bhandsmusic-desktop-lyrics-move-by', async (_event, dx, dy) => {
+ipcMain.handle('starlightmusic-desktop-lyrics-move-by', async (_event, dx, dy) => {
   try {
     if (!desktopLyricsWindow || desktopLyricsWindow.isDestroyed()) return { ok: false, error: 'NO_DESKTOP_LYRICS_WINDOW' };
     if (desktopLyricsState.clickThrough !== false) return { ok: false, error: 'DESKTOP_LYRICS_LOCKED' };
@@ -1976,7 +1976,7 @@ ipcMain.handle('bhandsmusic-desktop-lyrics-move-by', async (_event, dx, dy) => {
 // ==================== IPC 处理器：壁纸模式 ====================
 
 /** 启用/禁用壁纸模式 */
-ipcMain.handle('bhandsmusic-wallpaper-set-enabled', async (_event, enabled, payload) => {
+ipcMain.handle('starlightmusic-wallpaper-set-enabled', async (_event, enabled, payload) => {
   try {
     if (enabled) createWallpaperWindow(payload || {});
     else closeWallpaperWindow();
@@ -1987,7 +1987,7 @@ ipcMain.handle('bhandsmusic-wallpaper-set-enabled', async (_event, enabled, payl
 });
 
 /** 更新壁纸配置 */
-ipcMain.handle('bhandsmusic-wallpaper-update', async (_event, payload) => {
+ipcMain.handle('starlightmusic-wallpaper-update', async (_event, payload) => {
   try {
     wallpaperState = { ...wallpaperState, ...(payload || {}) };
     if (wallpaperState.enabled) {
@@ -2143,7 +2143,7 @@ async function runMemoryAutoTick(reason = 'auto') {
 }
 
 /** 获取内存快照（渲染层状态芯片数据源） */
-ipcMain.handle('bhandsmusic-memory-get-snapshot', async () => {
+ipcMain.handle('starlightmusic-memory-get-snapshot', async () => {
   try {
     return {
       ok: true,
@@ -2162,7 +2162,7 @@ ipcMain.handle('bhandsmusic-memory-get-snapshot', async () => {
 });
 
 /** 配置自动释放策略（渲染层设置面板同步入口） */
-ipcMain.handle('bhandsmusic-memory-configure-auto', async (_event, payload = {}) => {
+ipcMain.handle('starlightmusic-memory-configure-auto', async (_event, payload = {}) => {
   memoryAutoState = normalizeMemoryAutoState(payload);
   syncMemoryAutoTimer();
   if (memoryAutoState.enabled && payload.runNow === true && !isMainWindowForegroundVisible()) {
@@ -2177,12 +2177,12 @@ ipcMain.handle('bhandsmusic-memory-configure-auto', async (_event, payload = {})
 });
 
 /** 手动压缩播放器进程工作集 */
-ipcMain.handle('bhandsmusic-memory-trim-app', async (_event, payload = {}) => {
+ipcMain.handle('starlightmusic-memory-trim-app', async (_event, payload = {}) => {
   return trimAppMemoryNow(payload.reason || 'renderer');
 });
 
 /** 手动系统级内存释放（前台可见时跳过；autoElevate 时可请求 UAC 提权） */
-ipcMain.handle('bhandsmusic-memory-purge-system', async (_event, payload = {}) => {
+ipcMain.handle('starlightmusic-memory-purge-system', async (_event, payload = {}) => {
   const mask = systemMemory.normalizeMask(payload && payload.mask);
   const autoElevate = payload && payload.autoElevate === true;
   try {
@@ -2221,7 +2221,7 @@ ipcMain.handle('bhandsmusic-memory-purge-system', async (_event, payload = {}) =
 // ==================== 本地音乐库 IPC（移植自上游 Mineradio 2.2.0） ====================
 
 /** 列出本地音乐库全部曲目 */
-ipcMain.handle('bhandsmusic-local-library-list', async () => {
+ipcMain.handle('starlightmusic-local-library-list', async () => {
   try {
     return await localMusicLibrary.listTracks();
   } catch (error) {
@@ -2230,7 +2230,7 @@ ipcMain.handle('bhandsmusic-local-library-list', async () => {
 });
 
 /** 读取本地曲目歌词（.lrc sidecar 或内嵌歌词） */
-ipcMain.handle('bhandsmusic-local-library-lyric', (_event, localFileId) => {
+ipcMain.handle('starlightmusic-local-library-lyric', (_event, localFileId) => {
   try {
     return localMusicLibrary.lyricForTrack(localFileId);
   } catch (error) {
@@ -2251,7 +2251,7 @@ function pruneLocalMusicImportCapabilities() {
   }
 }
 
-ipcMain.handle('bhandsmusic-local-library-authorize', (event, payload = {}) => {
+ipcMain.handle('starlightmusic-local-library-authorize', (event, payload = {}) => {
   const files = [];
   const seen = new Set();
   for (const item of (Array.isArray(payload && payload.files) ? payload.files : []).slice(0, 50000)) {
@@ -2285,7 +2285,7 @@ ipcMain.handle('bhandsmusic-local-library-authorize', (event, payload = {}) => {
 });
 
 /** 执行导入：凭 token 换取已授权文件清单，解析元数据并写入持久化索引 */
-ipcMain.handle('bhandsmusic-local-library-import', async (event, payload = {}) => {
+ipcMain.handle('starlightmusic-local-library-import', async (event, payload = {}) => {
   pruneLocalMusicImportCapabilities();
   const token = String(payload && payload.token || '').trim().toLowerCase();
   const capability = /^[a-f0-9]{48}$/.test(token) ? localMusicImportCapabilities.get(token) : null;
@@ -2319,8 +2319,8 @@ async function createWindow() {
   process.env.HOST = '127.0.0.1';
   process.env.COOKIE_FILE = path.join(app.getPath('userData'), '.cookie');
   process.env.QQ_COOKIE_FILE = path.join(app.getPath('userData'), '.qq-cookie');
-  process.env.BHANDSMUSIC_UPDATE_DIR = getUpdateDownloadDir();
-  process.env.BHANDSMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(app.getPath('userData'), 'cuefield-feedback.jsonl');
+  process.env.STARLIGHTMUSIC_UPDATE_DIR = getUpdateDownloadDir();
+  process.env.STARLIGHTMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(app.getPath('userData'), 'cuefield-feedback.jsonl');
 
   // 内置换源服务（go-music-api）：随包分发的平台原生二进制，由主进程托管启动。
   // 不 await，避免拖慢窗口创建（实测就绪约 600ms）；就绪后 go-music-service 会清掉
@@ -2479,7 +2479,7 @@ async function createWindow() {
   let closeDialogWindow = null;
   app.on('before-quit', () => { forceQuit = true; });
   // 读取记住的关闭选择
-  const CLOSE_PREF_KEY = 'bhandsmusic-close-preference';
+  const CLOSE_PREF_KEY = 'starlightmusic-close-preference';
   function readClosePreference() {
     try {
       const prefPath = path.join(app.getPath('userData'), 'close-pref.json');
@@ -2743,7 +2743,7 @@ if (!gotSingleInstanceLock) {
     } catch (e) {
       console.warn('dead domain interceptor register failed:', e.message);
     }
-    // 本地音乐库：注册 bhandsmusic-local:// 流式播放协议
+    // 本地音乐库：注册 starlightmusic-local:// 流式播放协议
     try {
       await localMusicLibrary.installProtocol(require('electron').protocol);
     } catch (e) {

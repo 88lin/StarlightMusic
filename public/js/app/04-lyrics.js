@@ -492,7 +492,7 @@ function refreshAllLyricLineFonts() {
 
 // ============ 歌词校准（对齐上游 Minera lyric-timing-offset 体系） ============
 // 按歌曲记忆歌词偏移（±5s，0.1s 步进），播放栏"词"按钮 hover 展开校准面板
-var LYRIC_TIMING_OFFSET_STORE_KEY = 'bhandsmusic-lyric-timing-offsets-v1';
+var LYRIC_TIMING_OFFSET_STORE_KEY = 'starlightmusic-lyric-timing-offsets-v1';
 var LYRIC_TIMING_OFFSET_LIMIT = 500;
 var lyricTimingOffsetMap = readLyricTimingOffsetMap();
 var lyricTimingPopoverCloseTimer = null;
@@ -705,12 +705,12 @@ function adjustCurrentLyricTimingOffset(delta) {
 }
 
 function handleLyricTimingOffsetClick(e) {
-  if (e && e._bhandsmusicLyricTimingHandled) return;
+  if (e && e._starlightmusicLyricTimingHandled) return;
   var stepBtn = e && e.target && e.target.closest ? e.target.closest('[data-lyric-offset-step]') : null;
   var resetBtn = e && e.target && e.target.closest ? e.target.closest('[data-lyric-offset-reset]') : null;
   if (!stepBtn && !resetBtn) return;
   if (e) {
-    e._bhandsmusicLyricTimingHandled = true;
+    e._starlightmusicLyricTimingHandled = true;
     e.preventDefault();
     e.stopPropagation();
   }
@@ -721,8 +721,8 @@ function handleLyricTimingOffsetClick(e) {
 
 function bindLyricTimingOffsetControls() {
   var root = document.getElementById('lyric-timing-control');
-  if (!root || root._bhandsmusicLyricTimingBound) return;
-  root._bhandsmusicLyricTimingBound = true;
+  if (!root || root._starlightmusicLyricTimingBound) return;
+  root._starlightmusicLyricTimingBound = true;
   root.addEventListener('mouseenter', function () {
     suppressLyricTimingSiblingPanels(true);
     clearLyricTimingPopoverClose();

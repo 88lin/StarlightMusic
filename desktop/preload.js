@@ -44,23 +44,23 @@ contextBridge.exposeInMainWorld('desktopWindow', {
 
   // ==================== 应用更新 ====================
   /** 打开更新安装程序（路径安全校验在主进程执行） */
-  openUpdateInstaller: (filePath) => ipcRenderer.invoke('bhandsmusic-open-update-installer', filePath),
+  openUpdateInstaller: (filePath) => ipcRenderer.invoke('starlightmusic-open-update-installer', filePath),
   /** 重启应用 */
-  restartApp: () => ipcRenderer.invoke('bhandsmusic-restart-app'),
+  restartApp: () => ipcRenderer.invoke('starlightmusic-restart-app'),
 
   // ==================== 本地缓存面板 ====================
   /** 读取缓存目录与占用（节拍映射 / 网络 HTTP / 应用数据） */
-  getCacheInfo: () => ipcRenderer.invoke('bhandsmusic-cache-get-info'),
+  getCacheInfo: () => ipcRenderer.invoke('starlightmusic-cache-get-info'),
   /** 打开缓存目录（只允许打开 getCacheInfo 返回过的目录，校验在主进程执行） */
-  openCachePath: (targetPath) => ipcRenderer.invoke('bhandsmusic-cache-open-path', targetPath),
+  openCachePath: (targetPath) => ipcRenderer.invoke('starlightmusic-cache-open-path', targetPath),
 
   // ==================== 全局快捷键 ====================
   /** 配置全局快捷键绑定（bindings: [{action, accelerator}]） */
-  configureGlobalHotkeys: (bindings) => ipcRenderer.invoke('bhandsmusic-hotkeys-configure-global', bindings || []),
+  configureGlobalHotkeys: (bindings) => ipcRenderer.invoke('starlightmusic-hotkeys-configure-global', bindings || []),
   /** 导出数据为 JSON 文件（弹出保存对话框） */
-  exportJsonFile: (payload) => ipcRenderer.invoke('bhandsmusic-export-json-file', payload || {}),
+  exportJsonFile: (payload) => ipcRenderer.invoke('starlightmusic-export-json-file', payload || {}),
   /** 导入 JSON 数据文件（弹出打开对话框） */
-  importJsonFile: () => ipcRenderer.invoke('bhandsmusic-import-json-file'),
+  importJsonFile: () => ipcRenderer.invoke('starlightmusic-import-json-file'),
 
   /**
    * 监听全局快捷键触发事件
@@ -70,15 +70,15 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   onGlobalHotkey: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload || {});
-    ipcRenderer.on('bhandsmusic-global-hotkey', listener);
-    return () => ipcRenderer.removeListener('bhandsmusic-global-hotkey', listener);
+    ipcRenderer.on('starlightmusic-global-hotkey', listener);
+    return () => ipcRenderer.removeListener('starlightmusic-global-hotkey', listener);
   },
 
   // ==================== 桌面歌词 ====================
   /** 启用/禁用桌面歌词（payload 包含 y、opacity、clickThrough 等配置） */
-  setDesktopLyricsEnabled: (enabled, payload) => ipcRenderer.invoke('bhandsmusic-desktop-lyrics-set-enabled', !!enabled, payload || {}),
+  setDesktopLyricsEnabled: (enabled, payload) => ipcRenderer.invoke('starlightmusic-desktop-lyrics-set-enabled', !!enabled, payload || {}),
   /** 更新桌面歌词配置（透明度、位置、锁定状态等） */
-  updateDesktopLyrics: (payload) => ipcRenderer.invoke('bhandsmusic-desktop-lyrics-update', payload || {}),
+  updateDesktopLyrics: (payload) => ipcRenderer.invoke('starlightmusic-desktop-lyrics-update', payload || {}),
 
   /**
    * 监听桌面歌词锁定状态变化
@@ -88,8 +88,8 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   onDesktopLyricsLockState: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload || {});
-    ipcRenderer.on('bhandsmusic-desktop-lyrics-lock-state', listener);
-    return () => ipcRenderer.removeListener('bhandsmusic-desktop-lyrics-lock-state', listener);
+    ipcRenderer.on('starlightmusic-desktop-lyrics-lock-state', listener);
+    return () => ipcRenderer.removeListener('starlightmusic-desktop-lyrics-lock-state', listener);
   },
 
   /**
@@ -100,15 +100,15 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   onDesktopLyricsEnabledState: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload || {});
-    ipcRenderer.on('bhandsmusic-desktop-lyrics-enabled-state', listener);
-    return () => ipcRenderer.removeListener('bhandsmusic-desktop-lyrics-enabled-state', listener);
+    ipcRenderer.on('starlightmusic-desktop-lyrics-enabled-state', listener);
+    return () => ipcRenderer.removeListener('starlightmusic-desktop-lyrics-enabled-state', listener);
   },
 
   // ==================== 壁纸模式 ====================
   /** 启用/禁用壁纸模式 */
-  setWallpaperMode: (enabled, payload) => ipcRenderer.invoke('bhandsmusic-wallpaper-set-enabled', !!enabled, payload || {}),
+  setWallpaperMode: (enabled, payload) => ipcRenderer.invoke('starlightmusic-wallpaper-set-enabled', !!enabled, payload || {}),
   /** 更新壁纸配置 */
-  updateWallpaperMode: (payload) => ipcRenderer.invoke('bhandsmusic-wallpaper-update', payload || {}),
+  updateWallpaperMode: (payload) => ipcRenderer.invoke('starlightmusic-wallpaper-update', payload || {}),
 
   // ==================== 系统设置 ====================
   /** 保存系统设置（关闭行为等） */
@@ -125,19 +125,19 @@ contextBridge.exposeInMainWorld('desktopWindow', {
 
   // ==================== 内存管家（移植自上游 Mineradio 2.2.0） ====================
   /** 获取内存快照（系统 + 播放器进程 + 自动释放状态） */
-  getMemorySnapshot: () => ipcRenderer.invoke('bhandsmusic-memory-get-snapshot'),
+  getMemorySnapshot: () => ipcRenderer.invoke('starlightmusic-memory-get-snapshot'),
   /** 配置自动内存释放策略（appTrim / 系统级定时释放 / 阈值 / 间隔） */
-  configureMemoryReduct: (payload) => ipcRenderer.invoke('bhandsmusic-memory-configure-auto', payload || {}),
+  configureMemoryReduct: (payload) => ipcRenderer.invoke('starlightmusic-memory-configure-auto', payload || {}),
   /** 手动压缩播放器进程工作集（前台可见时主进程会跳过） */
-  trimAppMemory: (payload) => ipcRenderer.invoke('bhandsmusic-memory-trim-app', payload || {}),
+  trimAppMemory: (payload) => ipcRenderer.invoke('starlightmusic-memory-trim-app', payload || {}),
   /** 手动系统级内存释放（autoElevate=true 时可请求管理员权限） */
-  purgeSystemMemory: (payload) => ipcRenderer.invoke('bhandsmusic-memory-purge-system', payload || {}),
+  purgeSystemMemory: (payload) => ipcRenderer.invoke('starlightmusic-memory-purge-system', payload || {}),
 
   // ==================== 本地音乐库（移植自上游 Mineradio 2.2.0） ====================
-  /** 列出本地音乐库全部曲目（含 bhandsmusic-local:// 流播地址） */
-  listLocalMusicLibrary: () => ipcRenderer.invoke('bhandsmusic-local-library-list'),
+  /** 列出本地音乐库全部曲目（含 starlightmusic-local:// 流播地址） */
+  listLocalMusicLibrary: () => ipcRenderer.invoke('starlightmusic-local-library-list'),
   /** 读取本地曲目歌词（localFileId 或 local:xxx 格式） */
-  readLocalMusicLyric: (localFileId) => ipcRenderer.invoke('bhandsmusic-local-library-lyric', String(localFileId || '')),
+  readLocalMusicLyric: (localFileId) => ipcRenderer.invoke('starlightmusic-local-library-lyric', String(localFileId || '')),
   /**
    * 导入本地音频文件（authorize + import 两步封装）
    * @param {File[]} files - 渲染层 File 对象数组（Electron 环境下带 .path 绝对路径）
@@ -151,11 +151,11 @@ contextBridge.exposeInMainWorld('desktopWindow', {
       entries.push({ path: filePath, relativePath: file.webkitRelativePath || file.name || '' });
     }
     if (!entries.length) return { ok: false, count: 0, tracks: [], error: 'NO_AUTHORIZED_LOCAL_AUDIO' };
-    const authorization = await ipcRenderer.invoke('bhandsmusic-local-library-authorize', { files: entries });
+    const authorization = await ipcRenderer.invoke('starlightmusic-local-library-authorize', { files: entries });
     if (!authorization || authorization.ok !== true) {
       return { ok: false, count: 0, tracks: [], error: (authorization && authorization.error) || 'LOCAL_IMPORT_AUTHORIZE_FAILED' };
     }
-    return ipcRenderer.invoke('bhandsmusic-local-library-import', { token: authorization.token });
+    return ipcRenderer.invoke('starlightmusic-local-library-import', { token: authorization.token });
   },
 
   // ==================== 窗口状态监听 ====================

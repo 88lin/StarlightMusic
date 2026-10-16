@@ -4,8 +4,8 @@
 
 - User requirement: all users must receive the installer/uninstaller safety fix with zero risk to unrelated files.
 - Files: `build/installer.nsh`, `docs/INSTALLER_STYLE.md`, `CHANGELOG.md`.
-- Implementation: the full setup reads existing HKCU/HKLM StarlightMusic install locations and may adopt them in place only when the registered path is already a dedicated `...\StarlightMusic` directory and contains StarlightMusic files or `.bhandsmusic-install-root`; it removes only the legacy `Uninstall StarlightMusic.exe` single file before writing the new safe uninstaller.
-- Same-version v1.1.1 rebuild rule: an existing dedicated `...\StarlightMusic` folder that already contains StarlightMusic files may be overwritten even if it lacks `.bhandsmusic-install-root`; mixed folders such as `D:\百度盘\翻身(1)` must not be adopted in place.
+- Implementation: the full setup reads existing HKCU/HKLM StarlightMusic install locations and may adopt them in place only when the registered path is already a dedicated `...\StarlightMusic` directory and contains StarlightMusic files or `.starlightmusic-install-root`; it removes only the legacy `Uninstall StarlightMusic.exe` single file before writing the new safe uninstaller.
+- Same-version v1.1.1 rebuild rule: an existing dedicated `...\StarlightMusic` folder that already contains StarlightMusic files may be overwritten even if it lacks `.starlightmusic-install-root`; mixed folders such as `D:\百度盘\翻身(1)` must not be adopted in place.
 - Do not regress: never run the old uninstaller, never adopt mixed parent folders or drive roots, never use quick patch JSON as the only fix path for installer/uninstaller bugs, and never restore recursive install-root deletion.
 
 这个文件用于解决新开 Codex 对话时“失忆”的问题。每次用户明确说“保留”“喜欢”“这个很好”“记住”“保存一下”等表达时，要把关键结论追加到这里。
@@ -213,7 +213,7 @@
 
 - 用户认可/要求保留：全项目品牌名从 Mineradio 改为 StarlightMusic，GitHub 仓库改为 `https://github.com/Bhands6/StarlightMusicChange.git`。
 - 涉及文件：全部源码、文档、配置文件（25+ 文件），包括 `package.json`、`server.js`、`desktop/main.js`、`desktop/preload.js`、`desktop/overlay-preload.js`、`public/index.html`、`public/desktop-lyrics.html`、`public/wallpaper.html`、`public/default-user-fx-archive.json`、`build/installer.nsh`、`build/after-pack.js`、所有 `.md` 文档。
-- 关键参数/实现：品牌名统一替换为 `StarlightMusic`/`bhandsmusic`/`BHANDSMUSIC`；`package.json` 中 `build.publish` 和 `bhandsmusic.update` 的 owner/repo 改为 `Bhands6/StarlightMusicChange`；GitHub 链接全部更新；环境变量前缀改为 `BHANDSMUSIC_`；IPC 频道名改为 `bhandsmusic-*`；CSS filter ID 改为 `bhandsmusic-control-glass-filter`；PowerShell 类名改为 `StarlightMusicMousePoll`/`StarlightMusicNativeWin`；安装标记文件改为 `.bhandsmusic-install-root`。
+- 关键参数/实现：品牌名统一替换为 `StarlightMusic`/`starlightmusic`/`STARLIGHTMUSIC`；`package.json` 中 `build.publish` 和 `starlightmusic.update` 的 owner/repo 改为 `Bhands6/StarlightMusicChange`；GitHub 链接全部更新；环境变量前缀改为 `STARLIGHTMUSIC_`；IPC 频道名改为 `starlightmusic-*`；CSS filter ID 改为 `starlightmusic-control-glass-filter`；PowerShell 类名改为 `StarlightMusicMousePoll`/`StarlightMusicNativeWin`；安装标记文件改为 `.starlightmusic-install-root`。
 - 禁止回退或改坏的点：不要把 GitHub 仓库 URL 改回 `XxHuberrr/Mineradio`；不要把环境变量前缀改回 `MINERADIO_`；不要把 IPC 频道名改回 `mineradio-*`；原作者署名 `XxHuberrr` 保留不动。
 
 ### 2026-07-21 - 3D 歌单架正对镜头
@@ -227,7 +227,7 @@
 
 - 用户认可/要求保留：安装器默认优先 `D:\StarlightMusic`，D 不存在再 E/F/.../Z；只有电脑确实没有任何 D-Z 盘时，才放行 `C:\StarlightMusic`。用户手动选 C 盘时也必须按这个规则拦截。
 - 涉及文件：`build/installer.nsh`、`docs/INSTALLER_STYLE.md`、`CHANGELOG.md`、`package.json`、`package-lock.json`。
-- 关键参数/实现：安装路径强制规范化到独立 `StarlightMusic` 子目录；非空且非 StarlightMusic-owned 的目录阻止安装；只有 `.bhandsmusic-install-root` 标记才算 StarlightMusic-owned；新安装器跳过没有该标记的旧卸载器，只删除旧 `Uninstall StarlightMusic.exe` 单文件并清理卸载注册表；新卸载器只删除已知 StarlightMusic/Electron 顶层文件，`resources`/`locales` 等子目录只做非递归空目录删除。
+- 关键参数/实现：安装路径强制规范化到独立 `StarlightMusic` 子目录；非空且非 StarlightMusic-owned 的目录阻止安装；只有 `.starlightmusic-install-root` 标记才算 StarlightMusic-owned；新安装器跳过没有该标记的旧卸载器，只删除旧 `Uninstall StarlightMusic.exe` 单文件并清理卸载注册表；新卸载器只删除已知 StarlightMusic/Electron 顶层文件，`resources`/`locales` 等子目录只做非递归空目录删除。
 - 禁止回退或改坏的点：绝对不要恢复 `RMDir /r $INSTDIR` 删除安装根目录；不要递归删除安装目录下的应用子目录；不要默认回到 `AppData\Local\Programs` 或 C 盘；不要允许用户把 StarlightMusic 直接装进已有杂项目录后由卸载器递归清空。
 
 ### 2026-06-25 - 多音乐接口热插拔方案与 QQ-only 登录 Bug
@@ -260,7 +260,7 @@
 ### 2026-06-24 - 默认测试作为默认用户存档
 - 用户认可/要求保留：`E:\Download\默认测试.json` 需要成为软件首次启用默认用户存档，并且软件内视觉参数默认值也按这份 JSON 快照初始化。
 - 涉及文件：`public/index.html`、`public/default-user-fx-archive.json`。
-- 关键参数/实现：`fxDefaults` 与 `PACKAGED_DEFAULT_FX_SNAPSHOT` 同步为「默认测试」；没有本地 `bhandsmusic-lyric-layout-v1` 时 `readSavedLyricLayout()` 使用 packaged snapshot；没有本地用户存档 key 时自动创建「默认测试」存档槽位。
+- 关键参数/实现：`fxDefaults` 与 `PACKAGED_DEFAULT_FX_SNAPSHOT` 同步为「默认测试」；没有本地 `starlightmusic-lyric-layout-v1` 时 `readSavedLyricLayout()` 使用 packaged snapshot；没有本地用户存档 key 时自动创建「默认测试」存档槽位。
 - 禁止回退或改坏的点：不要让首次启动回到旧青色 UI、动态自动隐藏歌单架或播客默认显示；不要覆盖已有用户本地存档，只在首次没有用户存档 key 时种入默认槽。
 
 ### 2026-06-24 - 歌单详情页歌词透明度边界
@@ -382,13 +382,13 @@
 
 - 用户认可/要求保留：播放器控制台当前 SVG 玻璃质感，后续要作为其它面板/按钮的参考基线。
 - 涉及文件：`public/index.html`、`docs/GLASS_SVG_TEXTURE.md`
-- 关键参数/实现：`#bhandsmusic-control-glass-filter`、`generateControlGlassDisplacementMap()`、`--saved-panel-glass-*`、`--saved-button-glass-*`。
+- 关键参数/实现：`#starlightmusic-control-glass-filter`、`generateControlGlassDisplacementMap()`、`--saved-panel-glass-*`、`--saved-button-glass-*`。
 - 禁止回退或改坏的点：不要改成普通毛玻璃；不要把中心做成一团糊；不要让右侧缺块、整体右偏或廉价白渐变重新出现。
 
 ### 2026-06-18 - 建立干净工作区和新对话接力规则
 
 - 用户认可/要求保留：工作区根目录保持清晰，项目叫 `StarlightMusic`，备份统一进入 `工作区备份`。
-- 涉及文件：根目录 `AGENTS.md`、项目 `AGENTS.md`、本文件、用户技能 `bhandsmusic-project-memory`。
+- 涉及文件：根目录 `AGENTS.md`、项目 `AGENTS.md`、本文件、用户技能 `starlightmusic-project-memory`。
 - 关键参数/实现：新对话先读取项目说明；遇到“保留/喜欢/记住”类表达时更新本文件。
 - 禁止回退或改坏的点：不要再把项目藏回 `editable-install\...\resources\app`；不要把散落备份重新放到根目录。
 

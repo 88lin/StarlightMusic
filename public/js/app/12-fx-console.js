@@ -61,7 +61,7 @@ function customBackgroundMediaLabel(media) {
   if (!media) return '未设置';
   return media.type === 'video' ? '视频已设置' : '图片已设置';
 }
-var CUSTOM_BG_DB_NAME = 'bhandsmusic-custom-background-v1';
+var CUSTOM_BG_DB_NAME = 'starlightmusic-custom-background-v1';
 var CUSTOM_BG_STORE = 'media';
 var customBgObjectUrl = '';
 var customBgApplyToken = 0;
@@ -354,8 +354,8 @@ var lyricColorPresets = [
   { name:'酒红', color:'#6d1f35' },
   { name:'墨黑', color:'#111318' },
 ];
-var USER_FX_ARCHIVE_STORE_KEY = 'bhandsmusic-user-fx-archives-v1';
-var USER_FX_ARCHIVE_EXPORT_TYPE = 'bhandsmusic-user-fx-archive';
+var USER_FX_ARCHIVE_STORE_KEY = 'starlightmusic-user-fx-archives-v1';
+var USER_FX_ARCHIVE_EXPORT_TYPE = 'starlightmusic-user-fx-archive';
 var USER_FX_ARCHIVE_SCHEMA = 1;
 function archiveNumber(raw, key, fallback, min, max) {
   var value = raw && raw[key] != null ? Number(raw[key]) : fallback;

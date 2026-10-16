@@ -7,11 +7,11 @@ const { Readable } = require('stream');
  * 本地音乐库（移植自上游 Mineradio 2.2.0 desktop/local-music-library.js）
  * - 持久化索引: userData/local-music-library.json + covers/ 封面目录
  * - 元数据解析: music-metadata (ESM 动态 import)
- * - 流式播放: 自定义协议 bhandsmusic-local://audio|cover/<id>?cap=<token>
+ * - 流式播放: 自定义协议 starlightmusic-local://audio|cover/<id>?cap=<token>
  * - 歌词: .lrc sidecar 优先，内嵌歌词兜底（UTF-8/UTF-16/GB18030 解码）
  */
 
-const LOCAL_MUSIC_SCHEME = 'bhandsmusic-local';
+const LOCAL_MUSIC_SCHEME = 'starlightmusic-local';
 const LOCAL_LIBRARY_VERSION = 1;
 const LOCAL_LIBRARY_FILE = 'local-music-library.json';
 const LOCAL_LIBRARY_DIRECTORY = 'local-music-library';

@@ -475,13 +475,13 @@ const WORKER_CODE = `
 
 /** 单次 handler 调用超时（默认 12s） */
 function callTimeoutMs() {
-  const v = Number(process.env.BHANDSMUSIC_LX_CALL_TIMEOUT_MS);
+  const v = Number(process.env.STARLIGHTMUSIC_LX_CALL_TIMEOUT_MS);
   return Number.isFinite(v) && v > 0 ? v : 12000;
 }
 
 /** 脚本初始化看门狗超时（默认 20s） */
 function initTimeoutMs() {
-  const v = Number(process.env.BHANDSMUSIC_LX_INIT_TIMEOUT_MS);
+  const v = Number(process.env.STARLIGHTMUSIC_LX_INIT_TIMEOUT_MS);
   return Number.isFinite(v) && v > 0 ? v : 20000;
 }
 
@@ -536,7 +536,7 @@ class LxMusicRunner {
             name: this._name,
             maxBody: MAX_SANDBOX_BODY_BYTES,
             callTimeout: callTimeoutMs(),
-            blockPrivateIp: process.env.BHANDSMUSIC_LX_BLOCK_PRIVATE_IP === '1'
+            blockPrivateIp: process.env.STARLIGHTMUSIC_LX_BLOCK_PRIVATE_IP === '1'
           },
           resourceLimits: { maxOldGenerationSizeMb: WORKER_HEAP_MB }
         });

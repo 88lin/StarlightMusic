@@ -50,7 +50,7 @@ function toBatScript(rceditPath, args) {
   const fs = require('fs');
   const os = require('os');
   const pathModule = require('path');
-  const batFile = pathModule.join(os.tmpdir(), 'bhandsmusic-rcedit-run.bat');
+  const batFile = pathModule.join(os.tmpdir(), 'starlightmusic-rcedit-run.bat');
   const lines = ['@echo off', 'setlocal enabledelayedexpansion'];
   args.forEach((arg, index) => lines.push('set "RC_ARG_' + index + '=' + String(arg) + '"'));
   const invocation = [toBatQuoted(rceditPath)];
@@ -59,7 +59,7 @@ function toBatScript(rceditPath, args) {
   lines.push('exit /b %ERRORLEVEL%');
   fs.writeFileSync(batFile, lines.join('\r\n') + '\r\n');
 
-  const launcher = pathModule.join(os.tmpdir(), 'bhandsmusic-rcedit-launch.sh');
+  const launcher = pathModule.join(os.tmpdir(), 'starlightmusic-rcedit-launch.sh');
   fs.writeFileSync(launcher, '#!/usr/bin/env bash\ncmd.exe /d /s /c "$1"\n', { mode: 0o700 });
   return [process.env.BASH || 'bash', launcher, batFile];
 }

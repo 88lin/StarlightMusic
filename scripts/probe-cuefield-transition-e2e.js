@@ -13,7 +13,7 @@ fs.mkdirSync(TMP, { recursive: true });
 
 process.env.PORT = '3999';
 process.env.HOST = '127.0.0.1';
-process.env.BHANDSMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(TMP, 'fb.jsonl');
+process.env.STARLIGHTMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(TMP, 'fb.jsonl');
 
 const CACHE = 'D:/StarlightMusicCache/beatmaps';
 const entries = fs.readdirSync(CACHE).filter((f) => f.endsWith('.json')).map((f) => {

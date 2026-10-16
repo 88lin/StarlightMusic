@@ -128,12 +128,12 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 /* ==================== 文件路径配置 ==================== */
 const COOKIE_FILE = process.env.COOKIE_FILE || path.join(PROJECT_ROOT, '.cookie');           // 网易云 Cookie 文件
 const QQ_COOKIE_FILE = process.env.QQ_COOKIE_FILE || path.join(PROJECT_ROOT, '.qq-cookie');  // QQ音乐 Cookie 文件
-const UPDATE_WORK_DIR = process.env.BHANDSMUSIC_UPDATE_DIR || path.join(PROJECT_ROOT, 'updates');         // 更新工作目录
-const UPDATE_DOWNLOAD_DIR = process.env.BHANDSMUSIC_UPDATE_DOWNLOAD_DIR || path.join(UPDATE_WORK_DIR, 'downloads');  // 更新下载目录
-const UPDATE_PATCH_BACKUP_DIR = process.env.BHANDSMUSIC_PATCH_BACKUP_DIR || path.join(UPDATE_WORK_DIR, 'backups', 'patches');  // 补丁备份目录
-const BEATMAP_CACHE_DIR = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';  // 节拍映射缓存目录
+const UPDATE_WORK_DIR = process.env.STARLIGHTMUSIC_UPDATE_DIR || path.join(PROJECT_ROOT, 'updates');         // 更新工作目录
+const UPDATE_DOWNLOAD_DIR = process.env.STARLIGHTMUSIC_UPDATE_DOWNLOAD_DIR || path.join(UPDATE_WORK_DIR, 'downloads');  // 更新下载目录
+const UPDATE_PATCH_BACKUP_DIR = process.env.STARLIGHTMUSIC_PATCH_BACKUP_DIR || path.join(UPDATE_WORK_DIR, 'backups', 'patches');  // 补丁备份目录
+const BEATMAP_CACHE_DIR = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';  // 节拍映射缓存目录
 // cuefield 反馈记录：桌面端 main.js 注入 userData 下的路径；裸跑（如本地调试）时退回仓库根。
-const CUEFIELD_FEEDBACK_FILE = process.env.BHANDSMUSIC_CUEFIELD_FEEDBACK_FILE || path.join(PROJECT_ROOT, 'cuefield-feedback.jsonl');
+const CUEFIELD_FEEDBACK_FILE = process.env.STARLIGHTMUSIC_CUEFIELD_FEEDBACK_FILE || path.join(PROJECT_ROOT, 'cuefield-feedback.jsonl');
 const MUSIC_SOURCES_CONFIG_FILE = path.join(PROJECT_ROOT, '.music-sources.json');  // 音源配置文件
 
 /* ==================== 音源配置管理 ==================== */
@@ -253,7 +253,7 @@ async function fillMetaFromNetease(id, meta) {
 
 /* ==================== 应用信息 ==================== */
 const APP_PACKAGE = readPackageInfo();
-const APP_VERSION = process.env.BHANDSMUSIC_VERSION || APP_PACKAGE.version || '0.9.11';  // 当前版本
+const APP_VERSION = process.env.STARLIGHTMUSIC_VERSION || APP_PACKAGE.version || '0.9.11';  // 当前版本
 const UPDATE_CONFIG = readUpdateConfig(APP_PACKAGE);  // 更新配置
 
 /* ==================== 平台 / 更新能力 ==================== */
@@ -492,16 +492,16 @@ function parseGitHubRepository(input) {
   return null;
 }
 function readUpdateConfig(pkg) {
-  const local = (pkg && pkg.bhandsmusic && pkg.bhandsmusic.update) || {};
-  const repoHint = process.env.BHANDSMUSIC_UPDATE_REPOSITORY
+  const local = (pkg && pkg.starlightmusic && pkg.starlightmusic.update) || {};
+  const repoHint = process.env.STARLIGHTMUSIC_UPDATE_REPOSITORY
     || process.env.GITHUB_REPOSITORY
     || local.repository
     || local.github
     || (pkg && pkg.repository && (pkg.repository.url || pkg.repository))
     || '';
   const parsed = parseGitHubRepository(repoHint) || {};
-  const owner = process.env.BHANDSMUSIC_UPDATE_OWNER || local.owner || parsed.owner || '';
-  const repo = process.env.BHANDSMUSIC_UPDATE_REPO || local.repo || parsed.repo || '';
+  const owner = process.env.STARLIGHTMUSIC_UPDATE_OWNER || local.owner || parsed.owner || '';
+  const repo = process.env.STARLIGHTMUSIC_UPDATE_REPO || local.repo || parsed.repo || '';
   return {
     provider: local.provider || 'github',
     owner,
@@ -510,9 +510,9 @@ function readUpdateConfig(pkg) {
     preview: local.preview !== false,
     preferMirrors: local.preferMirrors !== false,
     mirrors: readUpdateMirrors(local),
-    manifest: process.env.BHANDSMUSIC_UPDATE_MANIFEST
-      || process.env.BHANDSMUSIC_UPDATE_MANIFEST_URL
-      || process.env.BHANDSMUSIC_UPDATE_MANIFEST_FILE
+    manifest: process.env.STARLIGHTMUSIC_UPDATE_MANIFEST
+      || process.env.STARLIGHTMUSIC_UPDATE_MANIFEST_URL
+      || process.env.STARLIGHTMUSIC_UPDATE_MANIFEST_FILE
       || '',
   };
 }
@@ -521,7 +521,7 @@ function parseUpdateMirrorList(value) {
   return String(value || '').split(/[\n,;]/);
 }
 function readUpdateMirrors(local) {
-  const envMirrors = process.env.BHANDSMUSIC_UPDATE_MIRRORS || process.env.BHANDSMUSIC_UPDATE_MIRROR || '';
+  const envMirrors = process.env.STARLIGHTMUSIC_UPDATE_MIRRORS || process.env.STARLIGHTMUSIC_UPDATE_MIRROR || '';
   const raw = envMirrors
     ? parseUpdateMirrorList(envMirrors)
     : parseUpdateMirrorList(local.mirrors || local.downloadMirrors || []);
@@ -1652,7 +1652,7 @@ function writePatchFile(job, file) {
   if (expected && expected !== actual) throw new Error('PATCH_HASH_MISMATCH:' + rel);
   backupPatchTarget(job, rel, target);
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  const tmp = target + '.bhandsmusic-patch';
+  const tmp = target + '.starlightmusic-patch';
   fs.writeFileSync(tmp, content);
   fs.renameSync(tmp, target);
   if (expected && sha256Hex(fs.readFileSync(target)) !== expected) throw new Error('PATCH_WRITE_VERIFY_FAILED:' + rel);
@@ -1661,7 +1661,7 @@ function writePatchFile(job, file) {
 function normalizePatchPayload(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('INVALID_PATCH_PAYLOAD');
   const type = String(payload.type || payload.kind || '');
-  if (type && type !== 'bhandsmusic-resource-patch') throw new Error('UNSUPPORTED_PATCH_TYPE');
+  if (type && type !== 'starlightmusic-resource-patch') throw new Error('UNSUPPORTED_PATCH_TYPE');
   const from = normalizeVersion(payload.from || payload.baseVersion || '');
   const to = normalizeVersion(payload.to || payload.version || payload.targetVersion || '');
   const files = Array.isArray(payload.files) ? payload.files : [];
@@ -3837,14 +3837,14 @@ const server = http.createServer(async (req, res) => {
    * 此时本 server"绑定成功"却收不到流量，必须靠身份自检识别并换端口。 */
   if (pn === '/__bhands_identity') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'X-StarlightMusic-Server': String(APP_VERSION) });
-    res.end(JSON.stringify({ app: 'bhandsmusic', version: APP_VERSION, port: PORT }));
+    res.end(JSON.stringify({ app: 'starlightmusic', version: APP_VERSION, port: PORT }));
     return;
   }
 
   /* ---- 应用版本信息 ---- */
   if (pn === '/api/app/version') {
     sendJSON(res, {
-      name: APP_PACKAGE.name || 'bhandsmusic',
+      name: APP_PACKAGE.name || 'starlightmusic',
       productName: APP_PACKAGE.productName || 'StarlightMusic',
       version: APP_VERSION,
       platform: UPDATE_PLATFORM,

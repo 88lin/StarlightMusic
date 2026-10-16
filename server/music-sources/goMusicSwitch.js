@@ -34,8 +34,8 @@ function envTimeout(key, def) {
   const v = Number(process.env[key]);
   return Number.isFinite(v) && v > 0 ? v : def;
 }
-const SWITCH_TIMEOUT = () => envTimeout('BHANDSMUSIC_GO_MUSIC_SWITCH_TIMEOUT_MS', 8000);
-const URL_TIMEOUT = () => envTimeout('BHANDSMUSIC_GO_MUSIC_URL_TIMEOUT_MS', 6000);
+const SWITCH_TIMEOUT = () => envTimeout('STARLIGHTMUSIC_GO_MUSIC_SWITCH_TIMEOUT_MS', 8000);
+const URL_TIMEOUT = () => envTimeout('STARLIGHTMUSIC_GO_MUSIC_URL_TIMEOUT_MS', 6000);
 
 /**
  * 判断异常是不是「超时」。

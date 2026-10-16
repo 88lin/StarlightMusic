@@ -36,10 +36,10 @@ html.desktop-shell-root,html.desktop-shell-root body{background:transparent}   /
 /* 存档面板玻璃效果 */
 :root{
   --saved-panel-glass-bg:rgba(0,0,0,.10);--saved-panel-glass-filter:blur(12px) saturate(1.8) brightness(1.16);
-  --saved-panel-glass-svg-filter:url(#bhandsmusic-control-glass-filter) saturate(1);
+  --saved-panel-glass-svg-filter:url(#starlightmusic-control-glass-filter) saturate(1);
   --saved-panel-glass-shadow:inset 0 0 2px 1px rgba(255,255,255,.35),inset 0 0 10px 4px rgba(255,255,255,.15),0 4px 16px rgba(17,17,26,.05),0 8px 24px rgba(17,17,26,.05),0 16px 56px rgba(17,17,26,.05),inset 0 4px 16px rgba(17,17,26,.05),inset 0 8px 24px rgba(17,17,26,.05),inset 0 16px 56px rgba(17,17,26,.05);
   --saved-button-glass-bg:rgba(0,0,0,.10);--saved-button-glass-filter:blur(12px) saturate(1.8) brightness(1.16);
-  --saved-button-glass-svg-filter:url(#bhandsmusic-control-glass-filter) saturate(1);
+  --saved-button-glass-svg-filter:url(#starlightmusic-control-glass-filter) saturate(1);
   --saved-button-glass-shadow:inset 0 0 2px 1px rgba(255,255,255,.34),inset 0 0 10px 4px rgba(255,255,255,.13),0 10px 30px rgba(0,0,0,.18);
   --saved-button-glass-hover-bg:rgba(255,255,255,.055);
   --saved-button-glass-hover-shadow:inset 0 0 2px 1px rgba(255,255,255,.42),inset 0 0 12px 5px rgba(255,255,255,.17),0 12px 34px rgba(0,0,0,.22),0 0 18px rgba(255,255,255,.06)}
@@ -590,7 +590,7 @@ html.control-glass-svg-ok #bottom-bar{backdrop-filter:none;-webkit-backdrop-filt
 #bottom-bar::before{content:none}
 #bottom-bar::after{content:none}
 #bottom-bar.visible{opacity:.91;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1);filter:blur(0);background:rgba(0,0,0,.10);backdrop-filter:blur(12px) saturate(1.8) brightness(1.16);-webkit-backdrop-filter:blur(12px) saturate(1.8) brightness(1.16);box-shadow:inset 0 0 2px 1px rgba(255,255,255,.35),inset 0 0 10px 4px rgba(255,255,255,.15),0 4px 16px rgba(17,17,26,.05),0 8px 24px rgba(17,17,26,.05),0 16px 56px rgba(17,17,26,.05),inset 0 4px 16px rgba(17,17,26,.05),inset 0 8px 24px rgba(17,17,26,.05),inset 0 16px 56px rgba(17,17,26,.05)}
-html.control-glass-svg-ok #bottom-bar.visible{background:rgba(0,0,0,.10);backdrop-filter:url(#bhandsmusic-control-glass-filter) saturate(1);-webkit-backdrop-filter:url(#bhandsmusic-control-glass-filter) saturate(1)}
+html.control-glass-svg-ok #bottom-bar.visible{background:rgba(0,0,0,.10);backdrop-filter:url(#starlightmusic-control-glass-filter) saturate(1);-webkit-backdrop-filter:url(#starlightmusic-control-glass-filter) saturate(1)}
 #bottom-bar.soft-hidden{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(88px) scale(.972);filter:none;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
 body.home-controls-locked #bottom-bar{opacity:0!important;pointer-events:none!important;transform:translateX(-50%) translateY(92px) scale(.985)!important;filter:none!important;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important}
 #bottom-bar.stage-mode{bottom:14px;width:calc(100vw - 56px)}
@@ -1643,8 +1643,8 @@ html.control-glass-svg-ok #playlist-panel{
   -webkit-backdrop-filter:var(--saved-panel-glass-filter)!important;
 }
 html.control-glass-svg-ok #search-box{
-  backdrop-filter:url(#bhandsmusic-search-box-glass-filter) saturate(1)!important;
-  -webkit-backdrop-filter:url(#bhandsmusic-search-box-glass-filter) saturate(1)!important;
+  backdrop-filter:url(#starlightmusic-search-box-glass-filter) saturate(1)!important;
+  -webkit-backdrop-filter:url(#starlightmusic-search-box-glass-filter) saturate(1)!important;
 }
 #home-btn,#upload-btn,#visual-guide-btn,#fx-fab,.top-account-pill,#top-right .icon-btn{
   background:var(--saved-button-glass-bg)!important;
@@ -1812,8 +1812,8 @@ html.control-glass-svg-ok .search-history-chip{
   border-color:transparent!important;
   color:rgba(var(--fc-accent-rgb),.78)!important;
   box-shadow:var(--saved-button-glass-shadow)!important;
-  backdrop-filter:url(#bhandsmusic-search-pill-glass-filter) saturate(1)!important;
-  -webkit-backdrop-filter:url(#bhandsmusic-search-pill-glass-filter) saturate(1)!important;
+  backdrop-filter:url(#starlightmusic-search-pill-glass-filter) saturate(1)!important;
+  -webkit-backdrop-filter:url(#starlightmusic-search-pill-glass-filter) saturate(1)!important;
   overflow:visible!important;
 }
 html.control-glass-svg-ok .search-mode-tabs button:hover,

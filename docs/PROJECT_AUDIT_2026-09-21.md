@@ -186,7 +186,7 @@ grep -rln "桌面" docs/ README.md
 - 第 127 行：`GO_MUSIC_API_URL` 说明写「容器编排内自动注入」
 - 第 162 行：结构树写 `docker-compose.yml # 生产部署编排（web + caddy + go-music-api）`
 
-但 `docker-compose.yml` 里 **`go-music-api` 出现 0 次**（只有 `bhandsmusic` 和 `caddy`）。
+但 `docker-compose.yml` 里 **`go-music-api` 出现 0 次**（只有 `starlightmusic` 和 `caddy`）。
 
 **验证**：
 ```bash
@@ -364,7 +364,7 @@ git -C StarlightMusic/StarlightMusicChange rev-list --count @{u}..HEAD   # 54
 | t-coverBackdropAdapt 封面粒子避光 | ✅ fork 适配版 | 关闭时悬浮层展开不再压低背景粒子（uParticleDim） |
 | t-lyricLiveViewportFit 歌词实时边界 | ⚠️ 仅持久化 | 上游依赖逐帧投影管线（row-layers），fork 歌词管线无对应机制；开关可存档但不改变渲染 |
 | audio-output-panel 播放输出设备 | ✅ 完整 | enumerateDevices 枚举 + setSinkId 切换 + localStorage 记忆，启动时自动恢复；真实声卡效果待用户验证 |
-| cache-storage-panel 本地缓存 | ✅ 完整（桌面版） | 新增 IPC：bhandsmusic-cache-get-info / open-path（路径白名单校验）；报告节拍映射/网络 HTTP/应用数据三目录占用；Web 模式降级提示。无「更改目录」（fork 无缓存根切换机制，仅支持 BHANDSMUSIC_BEAT_CACHE_DIR 环境变量） |
+| cache-storage-panel 本地缓存 | ✅ 完整（桌面版） | 新增 IPC：starlightmusic-cache-get-info / open-path（路径白名单校验）；报告节拍映射/网络 HTTP/应用数据三目录占用；Web 模式降级提示。无「更改目录」（fork 无缓存根切换机制，仅支持 STARLIGHTMUSIC_BEAT_CACHE_DIR 环境变量） |
 
 **验证**：渲染交互 13/13（seg 点击/toggle/滑块/降级提示）、持久化 saveLyricLayout 往返 1/1、无 control missing。
 **待用户真机验证**：播放输出设备切换（需真实声卡）、4× 清晰度在长歌词下的显存占用、星河开关的观感。

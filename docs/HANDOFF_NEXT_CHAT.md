@@ -57,7 +57,7 @@ Get-Content RELEASE.md
 
 - 已将 `E:\Download\默认测试.json` 设为首次启动默认用户存档和软件内默认视觉参数。
 - 新增 `public/default-user-fx-archive.json`，代码中 `PACKAGED_DEFAULT_FX_SNAPSHOT` 与该 JSON 已脚本比对一致。
-- 没有本地 `bhandsmusic-lyric-layout-v1` 时，`readSavedLyricLayout()` 使用 packaged 默认快照；没有本地用户存档 key 时自动创建「默认测试」槽位。
+- 没有本地 `starlightmusic-lyric-layout-v1` 时，`readSavedLyricLayout()` 使用 packaged 默认快照；没有本地用户存档 key 时自动创建「默认测试」槽位。
 - 已恢复详细日志和发布说明：`CHANGELOG.md`、`README.md`、`SECURITY.md`、`RELEASE.md`、`docs/SECURITY_REBUILD_2026-06-24.md`、`docs/RELEASE_NOTES_v1.1.0.md`。
 - 已生成安装包：`dist/StarlightMusic-1.1.0-Setup.exe`。
 - 已生成校验文件：`dist/StarlightMusic-1.1.0-SHA256SUMS.txt`。

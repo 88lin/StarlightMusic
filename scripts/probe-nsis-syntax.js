@@ -105,7 +105,7 @@ function checkStatic() {
   assert(
     '变异后报出 StarlightMusicNormalizeInstallDir 缺失',
     true,
-    mutatedMissing.some((m) => m.name.toLowerCase() === 'bhandsmusicnormalizeinstalldir')
+    mutatedMissing.some((m) => m.name.toLowerCase() === 'starlightmusicnormalizeinstalldir')
   );
 }
 
@@ -324,8 +324,8 @@ function buildProbeSource(outExe, extraSectionBody) {
   lines.push(
     '',
     '; electron-builder 在 include installer.nsh 之前注入的定义与变量',
-    '!define APP_GUID "com.bhandsmusic.desktop"',
-    '!define UNINSTALL_APP_KEY "bhandsmusic-probe-uninstall-key"',
+    '!define APP_GUID "com.starlightmusic.desktop"',
+    '!define UNINSTALL_APP_KEY "starlightmusic-probe-uninstall-key"',
     '!define PRODUCT_FILENAME "StarlightMusic"',
     '!define MUI_WELCOMEFINISHPAGE_BITMAP "' + winPath(path.join(REPO, 'build', 'installerSidebar.bmp')) + '"',
     '',

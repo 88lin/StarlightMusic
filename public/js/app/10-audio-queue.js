@@ -947,7 +947,7 @@ async function playQueueAt(idx, opts) {
     }
 
     if (!data && isLocalPlayback) {
-      // 本地曲目：直接使用库的流播地址（bhandsmusic-local:// 或 objectURL），不走在线解析
+      // 本地曲目：直接使用库的流播地址（starlightmusic-local:// 或 objectURL），不走在线解析
       data = { url: song.localUrl, trial: false, playable: true, source: 'local' };
       // ⚠️ 必须记下来：本地节拍分析（prepareLocalBeatAnalysis）里每个守卫都拿
       // currentLocalSong.localKey 与 song.localKey 比对，少了这行它们会全部直接 return，
@@ -1412,7 +1412,7 @@ function normalizeControlGlassChromaticOffset(value) {
 function applyControlGlassChromaticOffset() {
   if (!fx) return;
   fx.controlGlassChromaticOffset = normalizeControlGlassChromaticOffset(fx.controlGlassChromaticOffset);
-  var filter = document.getElementById('bhandsmusic-control-glass-filter');
+  var filter = document.getElementById('starlightmusic-control-glass-filter');
   if (!filter) return;
   var dx = String(-Math.round(fx.controlGlassChromaticOffset));
   filter.querySelectorAll('feOffset').forEach(function(node){
@@ -1425,7 +1425,7 @@ function supportsControlGlassSvgFilter() {
     var ua = navigator.userAgent || '';
     if ((/Safari/.test(ua) && !/Chrome/.test(ua)) || /Firefox/.test(ua)) return false;
     var div = document.createElement('div');
-    div.style.backdropFilter = 'url(#bhandsmusic-control-glass-filter)';
+    div.style.backdropFilter = 'url(#starlightmusic-control-glass-filter)';
     return div.style.backdropFilter !== '';
   } catch (e) {
     return false;

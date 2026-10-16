@@ -93,7 +93,7 @@ function resolveDataDir() {
       return dir;
     }
   } catch (e) { /* 非 Electron 环境，走临时目录 */ }
-  const dir = path.join(os.tmpdir(), 'bhandsmusic-kugou-api');
+  const dir = path.join(os.tmpdir(), 'starlightmusic-kugou-api');
   try { fs.mkdirSync(dir, { recursive: true }); } catch (e) { /* ignore */ }
   return dir;
 }

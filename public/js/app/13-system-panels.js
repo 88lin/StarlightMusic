@@ -19,7 +19,7 @@
 // ============================================================
 // 播放输出设备（移植自上游 api-quality-output；渲染进程直接枚举 + setSinkId）
 // ============================================================
-var AUDIO_OUTPUT_STORE_KEY = 'bhandsmusic-audio-output-v1';
+var AUDIO_OUTPUT_STORE_KEY = 'starlightmusic-audio-output-v1';
 function readSavedAudioOutputId() {
   try { return String(localStorage.getItem(AUDIO_OUTPUT_STORE_KEY) || ''); } catch (e) { return ''; }
 }
@@ -129,7 +129,7 @@ function openCacheStorageDir() {
 }
 // ============================================================
 // 内存管家 / Mem Reduct（移植自上游 Mineradio 2.2.0 的 11-system-memory-controls.js）
-// 依赖主进程 bhandsmusic-memory-* IPC（desktop/system-memory.js）
+// 依赖主进程 starlightmusic-memory-* IPC（desktop/system-memory.js）
 // ============================================================
 var MEMORY_REDUCT_MASK_BITS = { workingSet: 1, modifiedList: 4, standbyList: 8, standbyLow: 16 };
 var MEMORY_REDUCT_MASK_DEFAULT = 29;
@@ -343,8 +343,8 @@ function runSystemMemoryPurge(autoElevate) {
 /** 绑定内存管家面板事件（幂等；由设置面板绑定流程调用） */
 function bindSystemMemoryControls() {
   document.querySelectorAll('#memory-mask-seg [data-memory-mask]').forEach(function (btn) {
-    if (btn._bhandsmusicMemoryBound) return;
-    btn._bhandsmusicMemoryBound = true;
+    if (btn._starlightmusicMemoryBound) return;
+    btn._starlightmusicMemoryBound = true;
     btn.addEventListener('click', function () {
       toggleMemoryMaskPart(btn.getAttribute('data-memory-mask'));
     });
@@ -354,8 +354,8 @@ function bindSystemMemoryControls() {
     ['fx-memory-threshold', 'memorySystemThresholdPercent', 50, 98]
   ].forEach(function (item) {
     var input = document.getElementById(item[0]);
-    if (!input || input._bhandsmusicMemoryBound) return;
-    input._bhandsmusicMemoryBound = true;
+    if (!input || input._starlightmusicMemoryBound) return;
+    input._starlightmusicMemoryBound = true;
     input.addEventListener('input', function () {
       fx[item[1]] = clampRange(Math.round(Number(input.value) || fxDefaults[item[1]]), item[2], item[3]);
       setRange(item[0], fx[item[1]]);

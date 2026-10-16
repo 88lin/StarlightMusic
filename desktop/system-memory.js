@@ -8,9 +8,9 @@
  *   （需要相应特权，缺权限时按 STATUS 码识别并提示）
  *
  * 所有临时 PowerShell 脚本写入应用专属临时目录，用后即删。
- * 环境变量开关（BHANDSMUSIC_ 前缀）：
- *   BHANDSMUSIC_DISABLE_SYSTEM_MEMORY_PURGE=1        禁用系统级释放能力
- *   BHANDSMUSIC_DISABLE_AUTOMATIC_SYSTEM_MEMORY_PURGE=1  仅禁止自动触发（手动仍可用）
+ * 环境变量开关（STARLIGHTMUSIC_ 前缀）：
+ *   STARLIGHTMUSIC_DISABLE_SYSTEM_MEMORY_PURGE=1        禁用系统级释放能力
+ *   STARLIGHTMUSIC_DISABLE_AUTOMATIC_SYSTEM_MEMORY_PURGE=1  仅禁止自动触发（手动仍可用）
  */
 
 const fs = require('fs');
@@ -19,8 +19,8 @@ const path = require('path');
 const { execFile } = require('child_process');
 
 const isWin = process.platform === 'win32';
-const SYSTEM_PURGE_AVAILABLE = isWin && process.env.BHANDSMUSIC_DISABLE_SYSTEM_MEMORY_PURGE !== '1';
-const SYSTEM_PURGE_ENABLED = SYSTEM_PURGE_AVAILABLE && process.env.BHANDSMUSIC_DISABLE_AUTOMATIC_SYSTEM_MEMORY_PURGE !== '1';
+const SYSTEM_PURGE_AVAILABLE = isWin && process.env.STARLIGHTMUSIC_DISABLE_SYSTEM_MEMORY_PURGE !== '1';
+const SYSTEM_PURGE_ENABLED = SYSTEM_PURGE_AVAILABLE && process.env.STARLIGHTMUSIC_DISABLE_AUTOMATIC_SYSTEM_MEMORY_PURGE !== '1';
 
 const MEMORY_MASK = {
   workingSet: 1,
@@ -136,7 +136,7 @@ let extendedCache = { at: 0, data: null };
 let nativeTempPath = '';
 
 function defaultNativeTempPath() {
-  const configured = String(process.env.BHANDSMUSIC_NATIVE_TEMP_DIR || '').trim();
+  const configured = String(process.env.STARLIGHTMUSIC_NATIVE_TEMP_DIR || '').trim();
   if (configured) return path.resolve(configured);
   const localRoot = String(process.env.LOCALAPPDATA || process.env.APPDATA || os.tmpdir()).trim();
   return path.join(localRoot, 'StarlightMusic', 'native-helper-temp');
@@ -187,7 +187,7 @@ function maskNeedsAdmin(mask) {
 }
 
 function makeTempPath(label, ext) {
-  return path.join(ensureNativeTempPath(), 'bhandsmusic-' + label + '-' + process.pid + '-' + Date.now() + '.' + ext);
+  return path.join(ensureNativeTempPath(), 'starlightmusic-' + label + '-' + process.pid + '-' + Date.now() + '.' + ext);
 }
 
 function safeUnlink(filePath) {
@@ -215,7 +215,7 @@ function runPowerShellFile(scriptPath, timeoutMs) {
         ...process.env,
         TEMP: ensureNativeTempPath(),
         TMP: ensureNativeTempPath(),
-        BHANDSMUSIC_NATIVE_TEMP_DIR: ensureNativeTempPath(),
+        STARLIGHTMUSIC_NATIVE_TEMP_DIR: ensureNativeTempPath(),
       },
     }, (error, stdout, stderr) => {
       const text = String(stdout || '').replace(/^\uFEFF/, '').trim();

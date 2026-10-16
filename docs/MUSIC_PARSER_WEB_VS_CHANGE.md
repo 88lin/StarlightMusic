@@ -146,10 +146,10 @@
 | 自愈 | worker 死亡后下次调用自动重建 | — | ✅ 同上 |
 
 两处**刻意保留的差异**：
-1. **内网地址拦截默认关闭**。Web 是公网服务，必须拦 SSRF；桌面版是单机自用，用户可能自建 LAN 音源服务，所以拦截做成开关 `BHANDSMUSIC_LX_BLOCK_PRIVATE_IP=1`（开启后与 Web 完全一致）。DNS 解析结果始终被「钉住」（防 rebinding）。
+1. **内网地址拦截默认关闭**。Web 是公网服务，必须拦 SSRF；桌面版是单机自用，用户可能自建 LAN 音源服务，所以拦截做成开关 `STARLIGHTMUSIC_LX_BLOCK_PRIVATE_IP=1`（开启后与 Web 完全一致）。DNS 解析结果始终被「钉住」（防 rebinding）。
 2. **脚本持久化位置不变**：仍由 `server.js` 写 `.music-sources.json`，没有引入 Web 的 `DATA_DIR/lx-scripts.json` + `lx-builtin/` 目录。
 
-另外新增两个可调超时（默认与 Web 一致）：`BHANDSMUSIC_LX_CALL_TIMEOUT_MS`（默认 12000）、`BHANDSMUSIC_LX_INIT_TIMEOUT_MS`（默认 20000）。
+另外新增两个可调超时（默认与 Web 一致）：`STARLIGHTMUSIC_LX_CALL_TIMEOUT_MS`（默认 12000）、`STARLIGHTMUSIC_LX_INIT_TIMEOUT_MS`（默认 20000）。
 
 ---
 
@@ -384,7 +384,7 @@ curl -X POST "http://127.0.0.1:3000/api/parse/music" -H "Content-Type: applicati
 
 **② 自动重启级联**：`exit` 处理器无条件调度重启，导致启动阶段的失败也会触发重启，日志里出现 3 个进程互相叠加、最终报错原因还变成了「启动超时」。修法：加 `epoch` 代号作废过期定时器 + 只有 `everReady` 之后才允许重启。
 
-**③ 顺带修掉的设计缺陷：超时 ≠ 服务不可用**。原实现里任何异常都会 `markServiceDown()` 冷却 3 分钟。但上游 `/switch` 耗时受**平台网络**影响极大（同一台机器：网络好 ~1.8s，网络差 9.6~10.8s，2026-09-21 实测）。现在超时只记 per-song 失败缓存，不再冷却服务；超时预算也改为可配（默认 switch 8s / url 6s，环境变量 `BHANDSMUSIC_GO_MUSIC_SWITCH_TIMEOUT_MS` / `BHANDSMUSIC_GO_MUSIC_URL_TIMEOUT_MS`）。
+**③ 顺带修掉的设计缺陷：超时 ≠ 服务不可用**。原实现里任何异常都会 `markServiceDown()` 冷却 3 分钟。但上游 `/switch` 耗时受**平台网络**影响极大（同一台机器：网络好 ~1.8s，网络差 9.6~10.8s，2026-09-21 实测）。现在超时只记 per-song 失败缓存，不再冷却服务；超时预算也改为可配（默认 switch 8s / url 6s，环境变量 `STARLIGHTMUSIC_GO_MUSIC_SWITCH_TIMEOUT_MS` / `STARLIGHTMUSIC_GO_MUSIC_URL_TIMEOUT_MS`）。
 
 同时 `probeService`（UI「测试连接」用的）也换成了同一套廉价端点：从「依赖平台网络、可能 10s 且误报」变成 **约 60ms 稳定可用**。
 

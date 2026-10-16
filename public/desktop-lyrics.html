@@ -1890,12 +1890,12 @@
 
     /* ==================== 消息和状态接口 ==================== */
     /* 暴露状态应用函数到全局 */
-    window.__bhandsmusicDesktopLyricsApplyState = applyState;
+    window.__starlightmusicDesktopLyricsApplyState = applyState;
 
     /* 监听状态消息 - 来自主窗口 */
     window.addEventListener('message', function(event){
       var data = event && event.data;
-      if (!data || data.type !== 'bhandsmusic-desktop-lyrics-state') return;
+      if (!data || data.type !== 'starlightmusic-desktop-lyrics-state') return;
       applyState(data.payload || {});
     });
 

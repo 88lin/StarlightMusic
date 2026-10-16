@@ -2040,7 +2040,7 @@ function avatarSrc(url) {
 var searchTimer = null;
 var searchRequestSeq = 0;
 var searchLastResultQuery = '';
-var SEARCH_HISTORY_STORE_KEY = 'bhandsmusic-search-history';
+var SEARCH_HISTORY_STORE_KEY = 'starlightmusic-search-history';
 var $input = document.getElementById('search-input');
 var $results = document.getElementById('search-results');
 function syncSearchAreaResultState() {

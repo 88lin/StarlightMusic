@@ -55,10 +55,10 @@ var AUDIO_FADE_IN_MS = 460;
 var AUDIO_FADE_OUT_MS = 420;
 var AUDIO_SILENCE_GAIN = 0.0001;
 var userPlaylists = [], qqPlaylists = [], myPodcastCollections = [], myPodcastItems = {}, playlistCoverCache = {};
-var CUSTOM_COVER_STORE_KEY = 'bhandsmusic-custom-covers';
-var CUSTOM_LYRIC_STORE_KEY = 'bhandsmusic-custom-lyrics-v1';
-var CUSTOM_LYRIC_PREF_STORE_KEY = 'bhandsmusic-custom-lyric-prefs-v1';
-var LYRIC_LAYOUT_STORE_KEY = 'bhandsmusic-lyric-layout-v1';
+var CUSTOM_COVER_STORE_KEY = 'starlightmusic-custom-covers';
+var CUSTOM_LYRIC_STORE_KEY = 'starlightmusic-custom-lyrics-v1';
+var CUSTOM_LYRIC_PREF_STORE_KEY = 'starlightmusic-custom-lyric-prefs-v1';
+var LYRIC_LAYOUT_STORE_KEY = 'starlightmusic-lyric-layout-v1';
 var VISUAL_PRESET_SCHEMA = 'skull-preset-v2';
 // 视觉预设索引上限：presetMeta 定义在文件后部，而启动恢复（readSavedPlaybackVisualPreset /
 // readSavedLyricLayout）先于其执行，故此处给初始化期兜底值；presetMeta 定义后按其长度校准
@@ -68,18 +68,18 @@ var VISUAL_PRESET_INDEX_MAX = 17;
 var STAGE_LYRIC_DISPLAY_MODES = { single: 1, dual: 1, triple: 1, cinema: 1, custom: 1 };
 // 歌词动画风格合法值：readSavedLyricLayout（768 行）同样先于动画函数区执行（同款时序坑）
 var STAGE_LYRIC_MOTION_STYLES = { glass: 1, smooth: 1, float: 1, quick: 1, shine: 1, glitch: 1 };
-var PLAYBACK_QUALITY_STORE_KEY = 'bhandsmusic-playback-quality-v1';
-var UPLOAD_TIP_STORE_KEY = 'bhandsmusic-upload-tip-seen';
-var DIY_MODE_STORE_KEY = 'bhandsmusic-diy-player-mode-v1';
-var PLAYLIST_PANEL_PIN_STORE_KEY = 'bhandsmusic-playlist-panel-pinned-v1';
-var USER_CAPSULE_AUTO_HIDE_STORE_KEY = 'bhandsmusic-user-capsule-auto-hide-v1';
-var FX_FAB_AUTO_HIDE_STORE_KEY = 'bhandsmusic-fx-fab-auto-hide-v1';
-var CONTROLS_AUTO_HIDE_STORE_KEY = 'bhandsmusic-controls-auto-hide-v1';
-var FREE_CAMERA_STORE_KEY = 'bhandsmusic-free-camera-v1';
-var HOTKEY_SETTINGS_STORE_KEY = 'bhandsmusic-hotkey-settings-v1';
-var VISUAL_GUIDE_SEEN_STORE_KEY = 'bhandsmusic-visual-guide-seen-v2';
-var LOCAL_BEATMAP_STORE_KEY = 'bhandsmusic-local-beatmaps-v1';
-var LOCAL_BEAT_PREF_STORE_KEY = 'bhandsmusic-local-beatmap-prefs-v1';
+var PLAYBACK_QUALITY_STORE_KEY = 'starlightmusic-playback-quality-v1';
+var UPLOAD_TIP_STORE_KEY = 'starlightmusic-upload-tip-seen';
+var DIY_MODE_STORE_KEY = 'starlightmusic-diy-player-mode-v1';
+var PLAYLIST_PANEL_PIN_STORE_KEY = 'starlightmusic-playlist-panel-pinned-v1';
+var USER_CAPSULE_AUTO_HIDE_STORE_KEY = 'starlightmusic-user-capsule-auto-hide-v1';
+var FX_FAB_AUTO_HIDE_STORE_KEY = 'starlightmusic-fx-fab-auto-hide-v1';
+var CONTROLS_AUTO_HIDE_STORE_KEY = 'starlightmusic-controls-auto-hide-v1';
+var FREE_CAMERA_STORE_KEY = 'starlightmusic-free-camera-v1';
+var HOTKEY_SETTINGS_STORE_KEY = 'starlightmusic-hotkey-settings-v1';
+var VISUAL_GUIDE_SEEN_STORE_KEY = 'starlightmusic-visual-guide-seen-v2';
+var LOCAL_BEATMAP_STORE_KEY = 'starlightmusic-local-beatmaps-v1';
+var LOCAL_BEAT_PREF_STORE_KEY = 'starlightmusic-local-beatmap-prefs-v1';
 var LOCAL_BEAT_COMBOS = ['', 'downbeat', 'push', 'drop', 'rebound', 'accent'];
 var HOTKEY_ACTIONS = [
   { key:'togglePlay', label:'播放 / 暂停', category:'播放', local:'Space', global:'Ctrl+Alt+Space' },
@@ -133,8 +133,8 @@ var qqHomeDailyState = { loading: false, loaded: false, tracks: [], playlist: nu
 var qqHomeDailyToken = 0;
 var homeVisualPresetActive = false;
 var homeVisualPrevPreset = 0;
-var HOME_LISTEN_STATS_KEY = 'bhandsmusic-listen-stats-v1';
-var HOME_WEATHER_CITY_KEY = 'bhandsmusic-weather-city';
+var HOME_LISTEN_STATS_KEY = 'starlightmusic-listen-stats-v1';
+var HOME_WEATHER_CITY_KEY = 'starlightmusic-weather-city';
 var homeWeatherRadioState = { loading: false, loaded: false, city: localStorage.getItem(HOME_WEATHER_CITY_KEY) || '上海', weather: null, radio: null, error: '', updatedAt: 0 };
 var homeWeatherToken = 0;
 var homeWeatherLoadTimer = null;
@@ -148,7 +148,7 @@ function markAppPerf(name) {
   try {
     var value = performance.now();
     appPerfMarks.push({ name: name, value: Math.round(value) });
-    if (performance && performance.mark) performance.mark('bhandsmusic:' + name);
+    if (performance && performance.mark) performance.mark('starlightmusic:' + name);
     if (appPerfMarks.length <= 16) console.debug('[StarlightMusicPerf]', name, Math.round(value) + 'ms');
   } catch (e) {}
 }
@@ -1056,7 +1056,7 @@ function collectRuntimePerfSnapshot(now) {
     deepSleep: isDeepBackgroundMode()
   };
 }
-window.__bhandsmusicPerfSnapshot = collectRuntimePerfSnapshot;
+window.__starlightmusicPerfSnapshot = collectRuntimePerfSnapshot;
 function trimRuntimeCaches(reason, aggressive) {
   var protectedCovers = collectProtectedCoverUrls();
   var protectedBeats = collectProtectedBeatMapKeys();

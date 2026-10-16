@@ -32,7 +32,7 @@ const RELEASE_BASE = 'https://github.com/guohuiyuan/go-music-api/releases/downlo
 const CHECKSUMS_ASSET = 'go-music-api_checksums.txt';
 
 /**
- * 下载候选前缀：直连 + 国内镜像回退（沿用 package.json 里 bhandsmusic.update.mirrors 的约定）。
+ * 下载候选前缀：直连 + 国内镜像回退（沿用 package.json 里 starlightmusic.update.mirrors 的约定）。
  * 实测 GitHub Release 的 CDN 在国内经常 UND_ERR_CONNECT_TIMEOUT，镜像通常更快。
  */
 const MIRROR_PREFIXES = ['', 'https://gh-proxy.com/', 'https://ghfast.top/', 'https://gh.llkk.cc/'];

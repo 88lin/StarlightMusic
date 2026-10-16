@@ -1,6 +1,6 @@
 # 2026-06-25 P0 Installer Safety Notes
 
-- Full setup adoption rule: the installer may adopt an existing registered install only when the registered path itself is a dedicated `...\StarlightMusic` directory and contains StarlightMusic files or `.bhandsmusic-install-root`; mixed parent folders and drive roots must stay blocked/quarantined.
+- Full setup adoption rule: the installer may adopt an existing registered install only when the registered path itself is a dedicated `...\StarlightMusic` directory and contains StarlightMusic files or `.starlightmusic-install-root`; mixed parent folders and drive roots must stay blocked/quarantined.
 - Quick patch rule: installer/uninstaller safety bugs cannot be fixed by a quick patch JSON alone, because the Windows uninstaller and install registry must be replaced by the full NSIS setup.
 
 # StarlightMusic Installer Style
@@ -17,7 +17,7 @@
 ## 页面结构
 
 - 欢迎页只保留：
-  - `BHANDSMUSIC`
+  - `STARLIGHTMUSIC`
   - `StarlightMusic 安装`
   - 简短中文说明
   - `默认位置：D:\StarlightMusic`
@@ -50,9 +50,9 @@
 - 默认安装路径从 `D:\StarlightMusic` 开始按 D-Z 顺序选择第一个存在的盘；只有电脑不存在任何 D-Z 盘时，默认才落到 `C:\StarlightMusic`。默认值只是推荐，用户可在安装目录页改成任意位置（含 C 盘）。
 - 用户手动选择目录时，安装器必须强制落到独立 `StarlightMusic` 子文件夹（`StarlightMusicNormalizeInstallDir` 负责补全后缀），但**不再限制盘符**：C 盘或任意盘都允许，不再弹窗阻止。
 - 非空且无法识别为 StarlightMusic 的目录必须阻止安装，避免卸载阶段删除用户其它文件。
-- 新安装器写入 `.bhandsmusic-install-root` 标记；新卸载器必须先验证路径和标记/主程序/卸载器，再进入卸载。
+- 新安装器写入 `.starlightmusic-install-root` 标记；新卸载器必须先验证路径和标记/主程序/卸载器，再进入卸载。
 - 新卸载器禁止使用 `RMDir /r $INSTDIR` 删除整个安装根目录，也禁止递归删除 `resources`、`locales` 等应用子目录；只能删除 StarlightMusic/Electron 顶层已知文件，最后用非递归 `RMDir "$INSTDIR"` 尝试移除空目录。
-- 安装新版本时，若检测到旧版本没有 `.bhandsmusic-install-root` 安全标记，必须跳过旧卸载器，只删除旧目录中的 `Uninstall StarlightMusic.exe` 单文件并清理卸载注册表，避免触发历史安装包的整目录递归删除逻辑。
+- 安装新版本时，若检测到旧版本没有 `.starlightmusic-install-root` 安全标记，必须跳过旧卸载器，只删除旧目录中的 `Uninstall StarlightMusic.exe` 单文件并清理卸载注册表，避免触发历史安装包的整目录递归删除逻辑。
 
 ## 2026-10-14 放开安装目录选择
 

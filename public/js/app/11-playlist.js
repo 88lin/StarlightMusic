@@ -789,8 +789,8 @@ function updatePlaybackProgressUi() {
   if (timeDisplay) timeDisplay.textContent = formatProgramTime(currentSec) + ' / ' + (durationSec > 0 ? formatProgramTime(durationSec) : '0:00');
 }
 function bindPlaybackProgressEvents(audioEl) {
-  if (!audioEl || audioEl._bhandsmusicProgressBound) return;
-  audioEl._bhandsmusicProgressBound = true;
+  if (!audioEl || audioEl._starlightmusicProgressBound) return;
+  audioEl._starlightmusicProgressBound = true;
   ['loadedmetadata', 'durationchange', 'timeupdate', 'seeked', 'play', 'pause', 'emptied'].forEach(function(name){
     audioEl.addEventListener(name, updatePlaybackProgressUi);
   });
@@ -801,8 +801,8 @@ function bindPlaybackProgressEvents(audioEl) {
   // 不清的话重试只会反复命中缓存里的死链，得干等 10 分钟 TTL 才恢复。
   audioEl.addEventListener('error', function(){
     if (!audioEl.error) return;   // 切换 src 引发的 abort 不算真失败
-    if (audioEl._bhandsmusicFailedSrc === audioEl.src) return;
-    audioEl._bhandsmusicFailedSrc = audioEl.src;
+    if (audioEl._starlightmusicFailedSrc === audioEl.src) return;
+    audioEl._starlightmusicFailedSrc = audioEl.src;
     handlePlaybackSourceError();
   });
   audioEl.addEventListener('timeupdate', throttledLastSessionPositionSave);

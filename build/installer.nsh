@@ -39,7 +39,7 @@
 !include nsDialogs.nsh
 !include WinMessages.nsh
 
-!define BHANDSMUSIC_INSTALL_MARKER ".bhandsmusic-install-root"
+!define STARLIGHTMUSIC_INSTALL_MARKER ".starlightmusic-install-root"
 
 !ifndef BUILD_UNINSTALLER
   Var StarlightMusicWelcomePage
@@ -79,10 +79,10 @@
 !macroend
 
 !macro customInstall
-  FileOpen $0 "$INSTDIR\${BHANDSMUSIC_INSTALL_MARKER}" w
+  FileOpen $0 "$INSTDIR\${STARLIGHTMUSIC_INSTALL_MARKER}" w
   ${IfNot} ${Errors}
     FileWrite $0 "StarlightMusic install root$\r$\n"
-    FileWrite $0 "appId=com.bhandsmusic.desktop$\r$\n"
+    FileWrite $0 "appId=com.starlightmusic.desktop$\r$\n"
     FileClose $0
   ${EndIf}
 !macroend
@@ -402,7 +402,7 @@ Function StarlightMusicNormalizeInstallDir
   StrCpy $2 "$0" 12 -12
   ${If} $1 < 12
   ${OrIf} $2 != "\StarlightMusic"
-  ${AndIf} $2 != "\bhandsmusic"
+  ${AndIf} $2 != "\starlightmusic"
     StrCpy $0 "$0\StarlightMusic"
   ${EndIf}
   Exch $0
@@ -428,7 +428,7 @@ Function StarlightMusicInstallDirLooksOwned
   Exch $0
   StrCpy $1 "0"
 
-  IfFileExists "$0\${BHANDSMUSIC_INSTALL_MARKER}" 0 +2
+  IfFileExists "$0\${STARLIGHTMUSIC_INSTALL_MARKER}" 0 +2
     StrCpy $1 "1"
 
   StrCpy $0 "$1"
@@ -458,7 +458,7 @@ Function StarlightMusicExistingInstallPathCanBeAdopted
   ${EndIf}
 
   IfFileExists "$2\*.*" 0 done
-  IfFileExists "$2\${BHANDSMUSIC_INSTALL_MARKER}" adopt 0
+  IfFileExists "$2\${STARLIGHTMUSIC_INSTALL_MARKER}" adopt 0
   IfFileExists "$2\${PRODUCT_FILENAME}.exe" adopt 0
   IfFileExists "$2\resources\app.asar" adopt 0
   IfFileExists "$2\resources\app\package.json" adopt 0
@@ -588,7 +588,7 @@ Function StarlightMusicOldInstallPathNeedsQuarantine
     Goto done
   ${EndIf}
 
-  IfFileExists "$2\${BHANDSMUSIC_INSTALL_MARKER}" done 0
+  IfFileExists "$2\${STARLIGHTMUSIC_INSTALL_MARKER}" done 0
   Push "$2"
   Call StarlightMusicExistingInstallPathCanBeAdopted
   Pop $4
@@ -670,7 +670,7 @@ Function StarlightMusicDeleteLegacyUninstallerFileIfMissingMarker
     Call StarlightMusicTrimInstallDir
     Pop $1
     ${If} $1 != ""
-      IfFileExists "$1\${BHANDSMUSIC_INSTALL_MARKER}" done 0
+      IfFileExists "$1\${STARLIGHTMUSIC_INSTALL_MARKER}" done 0
       DetailPrint "Remove legacy StarlightMusic uninstaller file: $1"
       Delete "$1\Uninstall ${PRODUCT_FILENAME}.exe"
     ${EndIf}
@@ -696,7 +696,7 @@ Function StarlightMusicValidateInstallDir
   StrCpy $1 "$INSTDIR" 12 -12
   ${If} $0 < 12
   ${OrIf} $1 != "\StarlightMusic"
-  ${AndIf} $1 != "\bhandsmusic"
+  ${AndIf} $1 != "\starlightmusic"
     MessageBox MB_ICONSTOP|MB_OK "安装目录必须是独立的 StarlightMusic 文件夹。请选择一个上级目录，安装器会自动创建 StarlightMusic 子文件夹。"
     Abort
   ${EndIf}
@@ -732,7 +732,7 @@ Function StarlightMusicValidateInstallDir
 FunctionEnd
 Function StarlightMusicStageSidebarImage
   InitPluginsDir
-  File /oname=$PLUGINSDIR\bhandsmusic-sidebar.bmp "${MUI_WELCOMEFINISHPAGE_BITMAP}"
+  File /oname=$PLUGINSDIR\starlightmusic-sidebar.bmp "${MUI_WELCOMEFINISHPAGE_BITMAP}"
 FunctionEnd
 
 ; ─────────────────────────────────────────────────────────────
@@ -814,11 +814,11 @@ Function StarlightMusicWelcomeShow
 
   ${NSD_CreateBitmap} 0u 0u 109u 193u ""
   Pop $StarlightMusicWelcomeImage
-  ${NSD_SetStretchedImage} $StarlightMusicWelcomeImage "$PLUGINSDIR\bhandsmusic-sidebar.bmp" $StarlightMusicWelcomeImageBitmap
+  ${NSD_SetStretchedImage} $StarlightMusicWelcomeImage "$PLUGINSDIR\starlightmusic-sidebar.bmp" $StarlightMusicWelcomeImageBitmap
   Call StarlightMusicBuildSidebarText
   Call StarlightMusicUpdateSidebarPath
 
-  ${NSD_CreateLabel} 120u 10u 195u 12u "BHANDSMUSIC"
+  ${NSD_CreateLabel} 120u 10u 195u 12u "STARLIGHTMUSIC"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $StarlightMusicSmallFont 1
   SetCtlColors $0 "3257F7" "FFFFFF"
@@ -905,7 +905,7 @@ Function StarlightMusicDirectoryShow
 
   ${NSD_CreateBitmap} 0u 0u 109u 193u ""
   Pop $StarlightMusicDirectoryImage
-  ${NSD_SetStretchedImage} $StarlightMusicDirectoryImage "$PLUGINSDIR\bhandsmusic-sidebar.bmp" $StarlightMusicDirectoryImageBitmap
+  ${NSD_SetStretchedImage} $StarlightMusicDirectoryImage "$PLUGINSDIR\starlightmusic-sidebar.bmp" $StarlightMusicDirectoryImageBitmap
   Call StarlightMusicBuildSidebarText
   Call StarlightMusicUpdateSidebarPath
 
@@ -979,7 +979,7 @@ Function un.StarlightMusicInstallDirLooksOwned
   Exch $0
   StrCpy $1 "0"
 
-  IfFileExists "$0\${BHANDSMUSIC_INSTALL_MARKER}" 0 +2
+  IfFileExists "$0\${STARLIGHTMUSIC_INSTALL_MARKER}" 0 +2
     StrCpy $1 "1"
 
   StrCpy $0 "$1"
@@ -1010,7 +1010,7 @@ Function un.StarlightMusicNormalizeInstallDir
   StrCpy $2 "$0" 12 -12
   ${If} $1 < 12
   ${OrIf} $2 != "\StarlightMusic"
-  ${AndIf} $2 != "\bhandsmusic"
+  ${AndIf} $2 != "\starlightmusic"
     StrCpy $0 "$0\StarlightMusic"
   ${EndIf}
   Exch $0
