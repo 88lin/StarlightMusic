@@ -130,7 +130,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "Bhands6",
+        "owner": "88lin",
         "repo": "StarlightMusic"
       }
     ]
@@ -138,7 +138,7 @@
   "bhandsmusic": {
     "update": {
       "provider": "github",
-      "owner": "Bhands6",
+      "owner": "88lin",
       "repo": "StarlightMusic",
       "preview": true,
       "preferMirrors": true,
