@@ -219,7 +219,10 @@ function shouldSuppressDefaultConfiguredHotkey(e) {
   if (!combo) return false;
   for (var i = 0; i < HOTKEY_ACTIONS.length; i++) {
     var action = HOTKEY_ACTIONS[i];
-    if (action.local === combo && hotkeySettings.local[action.key] !== combo) return true;
+    // (ported upstream issue #413) 只有当默认键被改绑到「另一个非空键」时才抑制默认行为；
+    // 用户清空某项（空字符串）不应吞掉出厂默认键 —— 旧行为导致清空 nextTrack 后
+    // ArrowRight 既不走配置热键也不走默认分支，切歌快捷键彻底失效。
+    if (action.local === combo && hotkeySettings.local[action.key] && hotkeySettings.local[action.key] !== combo) return true;
   }
   return false;
 }
