@@ -2474,7 +2474,26 @@ function scoreSongSearchResult(song, q, sourceIndex) {
     if (originalArtists.length && searchLooksLikeSameTitleCover(song, nq, name, album, raw, originalArtistMatch, sourceIndex)) score -= 46;
   }
   score -= (sourceIndex || 0) * 0.75;
+  score += tryPinyinBoost(song, q);
   return score;
+}
+// ── 中文拼音首字母搜索（ported upstream PR #192，用 pinyin-pro）──
+// 输入拼音首字母（如 smfx → 失眠飞行）时给命中歌曲加分，
+// 解决原生评分器无法理解拼音导致正确结果排不上去的问题。
+var _pinyinMatchCache = {};
+function tryPinyinBoost(song, q) {
+  if (!q || q.length < 2 || !/^[a-z]+$/.test(q)) return 0;
+  var name = song && song.name;
+  if (!name) return 0;
+  try {
+    var cacheKey = name + '|' + q;
+    if (_pinyinMatchCache[cacheKey] === undefined) {
+      _pinyinMatchCache[cacheKey] = (typeof pinyinPro !== 'undefined' && pinyinPro.match)
+        ? (pinyinPro.match(name, q) ? 1 : 0)
+        : 0;
+    }
+    return _pinyinMatchCache[cacheKey] ? 95 : 0;
+  } catch (e) { return 0; }
 }
 function mergeSongSearchResults(neteaseSongs, qqSongs, limit, q) {
   var out = [];
