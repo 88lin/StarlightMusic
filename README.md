@@ -36,7 +36,7 @@ StarlightMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成�
 
 ## 立即下载
 
-**当前版本：`v2.2.3`** → [点击下载最新版](https://github.com/Bhands6/StarlightMusicChange/releases/latest)
+**当前版本：`v2.3.0`** → [点击下载最新版](https://github.com/88lin/StarlightMusic/releases/latest)
 
 在 Release 页面认准对应平台的文件名：
 
@@ -119,7 +119,7 @@ npm run check:reorg       # 加载期读写顺序等价校验
 ## 📁 项目结构
 
 ```
-StarlightMusicChange/
+StarlightMusic/
 ├── desktop/                          # Electron 主进程
 │   ├── main.js                       # 窗口 / IPC / 托盘 / 更新 / 桌面歌词 / 壁纸
 │   ├── preload.js                    # 渲染进程安全桥（desktopWindow API）
@@ -217,4 +217,4 @@ Copyright (C) 2026 XxHuberrr.
 
 本项目采用 GPL-3.0 授权。详见 [LICENSE](./LICENSE)。
 
-BM Logo、StarlightMusic 名称、界面视觉设计与原创视觉表达归作者所有；第三方依赖和第三方服务分别遵循其各自授权与服务条款。
+StarlightMusic 名称、界面视觉设计与原创视觉表达归作者所有；第三方依赖和第三方服务分别遵循其各自授权与服务条款。
