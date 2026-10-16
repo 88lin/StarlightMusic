@@ -1055,13 +1055,11 @@ function switchPlaybackVisualToEmily() {
 }
 function applyStartupStarfieldPreset() {
   if (playing || currentIdx >= 0) return;
-  startupVisualPreviewActive = true;
-  // 启动恢复态直接显示存档配置的预设（fx.preset 已由 readSavedLyricLayout 恢复），
-  // 不再强制切星河：旧行为导致启动画面与点歌后的特效不一致，被误认为没读配置。
-  // 仍经 setPreset 走一遍以触发预设副作用（骷髅资源加载 / uniforms / 控制台网格刷新）。
-  if (typeof setPreset === 'function') {
-    setPreset(fx.preset, { silent: true, preserveCamera: true, skipTransition: true, noSave: true });
-  } else if (typeof syncFxUniforms === 'function') {
+  // (ported upstream PR #287) 启动时保持用户保存的视觉预设，不再标记为「启动预览」，
+  // 避免空首页预览逻辑把用户上次选择的预设污染/覆盖。
+  startupVisualPreviewActive = false;
+  playbackVisualPreset = clampRange(Number(fx.preset) || 0, 0, presetMeta.length - 1);
+  if (typeof syncFxUniforms === 'function') {
     syncFxUniforms();
   }
 }
