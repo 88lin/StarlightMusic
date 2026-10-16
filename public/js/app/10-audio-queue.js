@@ -545,9 +545,15 @@ function nextUnblockedQueueIndex(idx) {
   }
   return -1;
 }
+var autoSkipBusy = false; // (ported upstream issue #316/#324) 连续受限歌自动跳过并发闸
 function skipFailedQueueItem(idx, token, message) {
   hideLoading();
   if (token !== trackSwitchToken) return;
+  // 音频错误事件可能在极短时间内连续触发多次，导致多个重量级 playQueueAt
+  // 并发互踩（token/src 互相覆盖），表现就是连续跳受限歌时 CPU 满载假死。
+  if (autoSkipBusy) return;
+  autoSkipBusy = true;
+  setTimeout(function(){ autoSkipBusy = false; }, 900);
   markQueueItemPlaybackFailed(idx);
   if (playQueue.length <= 1) {
     showSourceFallbackNotice('没有可跳过的下一首', message || '当前歌曲不可播放，队列里没有其他歌曲。');
