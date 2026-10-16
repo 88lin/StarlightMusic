@@ -206,7 +206,7 @@ async function fillMetaFromNetease(id, meta) {
   const sid = String(id == null ? '' : id).trim();
   if (!/^\d{1,12}$/.test(sid)) return null;
   try {
-    const r = await song_detail({ ids: sid, cookie: userCookie });
+    const r = await song_detail({ ids: sid, cookie: userCookie, realIP: NETEASE_REAL_IP });
     const s = r && r.body && r.body.songs && r.body.songs[0];
     if (!s) return null;
     const detailName = String(s.name || '').trim();
@@ -381,6 +381,14 @@ function rawCookieFallback(input) {
 let userCookie = '';
 try { if (fs.existsSync(COOKIE_FILE)) userCookie = fs.readFileSync(COOKIE_FILE, 'utf8').trim(); }
 catch (e) { userCookie = ''; }
+
+// (ported upstream PR #435) 开启游戏加速器后 UDP 53 DNS 被劫持到海外递归，网易云域名
+// 解析到海外节点导致地区受限跳歌。统一给网易云 API 请求注入国内 realIP。
+// 可用环境变量 STARLIGHTMUSIC_NETEASE_REAL_IP 覆盖；置空字符串可关闭注入。
+const NETEASE_REAL_IP = process.env.STARLIGHTMUSIC_NETEASE_REAL_IP !== undefined
+  ? String(process.env.STARLIGHTMUSIC_NETEASE_REAL_IP).trim()
+  : '116.25.146.177';
+
 function saveCookie(c) {
   userCookie = normalizeCookieHeader(c) || rawCookieFallback(c);
   try { fs.writeFileSync(COOKIE_FILE, userCookie); } catch (e) {}
@@ -2070,7 +2078,7 @@ async function requireLogin(res) {
 //   对于仍然缺失封面的歌曲, 用 song_detail 批量补齐
 async function handleSearch(keywords, limit) {
   console.log('[Search]', keywords, 'limit:', limit);
-  const result = await cloudsearch({ keywords, limit, cookie: userCookie });
+  const result = await cloudsearch({ keywords, limit, cookie: userCookie, realIP: NETEASE_REAL_IP });
   const songs = result.body && result.body.result && result.body.result.songs ? result.body.result.songs : [];
 
   let mapped = songs.map(s => {
@@ -2082,7 +2090,7 @@ async function handleSearch(keywords, limit) {
   if (missing.length) {
     try {
       console.log('[Search] backfilling covers for', missing.length, 'songs');
-      const dd = await song_detail({ ids: missing.join(','), cookie: userCookie });
+      const dd = await song_detail({ ids: missing.join(','), cookie: userCookie, realIP: NETEASE_REAL_IP });
       const songsArr = (dd.body && dd.body.songs) || [];
       const idToPic = {};
       songsArr.forEach(s => {
@@ -2111,10 +2119,10 @@ async function handleDiscoverHome() {
     };
   }
   const tasks = [
-    personalized({ limit: 8, cookie: userCookie, timestamp: Date.now() }),
-    dj_hot({ limit: 6, offset: 0, cookie: userCookie, timestamp: Date.now() }),
-    recommend_resource({ cookie: userCookie, timestamp: Date.now() }),
-    recommend_songs({ cookie: userCookie, timestamp: Date.now() }),
+    personalized({ limit: 8, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() }),
+    dj_hot({ limit: 6, offset: 0, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() }),
+    recommend_resource({ cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() }),
+    recommend_songs({ cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() }),
   ];
   const result = await Promise.allSettled(tasks);
 
@@ -3521,31 +3529,31 @@ async function fetchMyPodcastItems(key, info, limit, offset) {
   limit = Math.max(8, Math.min(60, Number(limit) || 30));
   offset = Math.max(0, Number(offset) || 0);
   if (key === 'collect') {
-    const r = await dj_sublist({ limit, offset, cookie: userCookie, timestamp: Date.now() });
+    const r = await dj_sublist({ limit, offset, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
     const raw = firstArrayFrom(r.body, ['djRadios', 'djradios', 'radios', 'data']);
     return { itemType: 'radio', items: raw.map(x => mapPodcastCollectionRadio(x, key)).filter(x => x.id) };
   }
   if (key === 'created') {
-    const r = await user_audio({ uid: info.userId, cookie: userCookie, timestamp: Date.now() });
+    const r = await user_audio({ uid: info.userId, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
     const raw = firstArrayFrom(r.body, ['data', 'djRadios', 'djradios', 'radios']);
     return { itemType: 'radio', items: raw.map(x => mapPodcastCollectionRadio(x, key)).filter(x => x.id) };
   }
   if (key === 'paid') {
-    const r = await dj_paygift({ limit, offset, cookie: userCookie, timestamp: Date.now() });
+    const r = await dj_paygift({ limit, offset, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
     const raw = firstArrayFrom(r.body, ['data', 'djRadios', 'djradios', 'radios']);
     return { itemType: 'radio', items: raw.map(x => mapPodcastCollectionRadio(x, key)).filter(x => x.id) };
   }
   if (key === 'liked') {
     let raw = [];
     try {
-      const sati = await sati_resource_sub_list({ cookie: userCookie, timestamp: Date.now() });
+      const sati = await sati_resource_sub_list({ cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       raw = firstArrayFrom(sati.body, ['data', 'resources', 'list']);
     } catch (e) {
       console.warn('[MyPodcastLiked] sati sub list failed:', e.message);
     }
     if (!raw.length) {
       try {
-        const recent = await record_recent_voice({ limit, cookie: userCookie, timestamp: Date.now() });
+        const recent = await record_recent_voice({ limit, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
         raw = firstArrayFrom(recent.body, ['data', 'list', 'resources']);
       } catch (e) {
         console.warn('[MyPodcastLiked] recent voice fallback failed:', e.message);
@@ -3614,9 +3622,9 @@ async function handleSongUrl(id, loginInfo, qualityPreference) {
       // 优先用 v1 接口 (支持更高音质 level 字段)
       let result;
       try {
-        result = await song_url_v1({ id, level: q.level, cookie: userCookie });
+        result = await song_url_v1({ id, level: q.level, cookie: userCookie, realIP: NETEASE_REAL_IP });
       } catch (e) {
-        result = await song_url({ id, br: q.br, cookie: userCookie });
+        result = await song_url({ id, br: q.br, cookie: userCookie, realIP: NETEASE_REAL_IP });
       }
       const d = result.body && result.body.data && result.body.data[0];
       if (d) lastData = d;
@@ -3788,7 +3796,7 @@ async function getLoginInfo() {
 
   // login_status 对二维码 cookie 的资料刷新通常更及时；失败时再降级到 user_account。
   try {
-    const st = await login_status({ cookie: userCookie, timestamp: Date.now() });
+    const st = await login_status({ cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
     const body = st.body || {};
     const data = body.data || body;
     const info = normalizeLoginInfo(data.profile || body.profile, data.account || body.account, data);
@@ -3798,7 +3806,7 @@ async function getLoginInfo() {
   }
 
   try {
-    const acc = await user_account({ cookie: userCookie, timestamp: Date.now() });
+    const acc = await user_account({ cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
     const body = acc.body || {};
     const info = normalizeLoginInfo(body.profile, body.account, body);
     if (info.loggedIn) return info;
@@ -4291,7 +4299,7 @@ const server = http.createServer(async (req, res) => {
       const kw = String(url.searchParams.get('keywords') || '').trim();
       const limit = Math.max(6, Math.min(30, parseInt(url.searchParams.get('limit') || '18', 10) || 18));
       if (!kw) { sendJSON(res, { podcasts: [] }); return; }
-      const r = await cloudsearch({ keywords: kw, type: 1009, limit, cookie: userCookie, timestamp: Date.now() });
+      const r = await cloudsearch({ keywords: kw, type: 1009, limit, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const result = (r.body && r.body.result) || {};
       const raw = result.djRadios || result.djradios || result.radios || [];
       const podcasts = raw.map(mapPodcastRadio).filter(p => p.id);
@@ -4308,7 +4316,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const limit = Math.max(6, Math.min(30, parseInt(url.searchParams.get('limit') || '18', 10) || 18));
       const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0);
-      const r = await dj_hot({ limit, offset, cookie: userCookie, timestamp: Date.now() });
+      const r = await dj_hot({ limit, offset, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const body = r.body || {};
       const raw = body.djRadios || body.djradios || body.radios || body.data || [];
       const podcasts = (Array.isArray(raw) ? raw : []).map(mapPodcastRadio).filter(p => p.id);
@@ -4324,7 +4332,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const rid = url.searchParams.get('id') || url.searchParams.get('rid');
       if (!rid) { sendJSON(res, { error: 'Missing podcast id' }, 400); return; }
-      const r = await dj_detail({ rid, cookie: userCookie, timestamp: Date.now() });
+      const r = await dj_detail({ rid, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const body = r.body || {};
       const radio = mapPodcastRadio(body.data || body.djRadio || body.radio || body);
       sendJSON(res, { podcast: radio });
@@ -4341,7 +4349,7 @@ const server = http.createServer(async (req, res) => {
       if (!rid) { sendJSON(res, { error: 'Missing podcast id', programs: [] }, 400); return; }
       const limit = Math.max(10, Math.min(60, parseInt(url.searchParams.get('limit') || '30', 10) || 30));
       const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0);
-      const r = await dj_program({ rid, limit, offset, asc: false, cookie: userCookie, timestamp: Date.now() });
+      const r = await dj_program({ rid, limit, offset, asc: false, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const body = r.body || {};
       const raw = body.programs || (body.data && (body.data.list || body.data.programs)) || [];
       const radio = raw[0] && raw[0].radio ? mapPodcastRadio(raw[0].radio) : { id: rid, rid };
@@ -4558,7 +4566,7 @@ const server = http.createServer(async (req, res) => {
 
   // ---------- 登出 ----------
   if (pn === '/api/logout') {
-    try { await logout({ cookie: userCookie }); } catch (e) {}
+    try { await logout({ cookie: userCookie, realIP: NETEASE_REAL_IP }); } catch (e) {}
     saveCookie('');
     sendJSON(res, { ok: true });
     return;
@@ -4570,7 +4578,7 @@ const server = http.createServer(async (req, res) => {
       const info = await getLoginInfo();
       if (!info.loggedIn || !info.userId) { sendJSON(res, { loggedIn: false, playlists: [] }); return; }
       const limit = Math.max(12, Math.min(100, parseInt(url.searchParams.get('limit') || '60', 10) || 60));
-      const r = await user_playlist({ uid: info.userId, limit, cookie: userCookie, timestamp: Date.now() });
+      const r = await user_playlist({ uid: info.userId, limit, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const list = ((r.body && r.body.playlist) || []).map(pl => ({
         id: pl.id,
         name: pl.name,
@@ -4602,7 +4610,7 @@ const server = http.createServer(async (req, res) => {
       let likedIds = [];
       try {
         if (typeof song_like_check === 'function') {
-          const checked = await song_like_check({ ids: JSON.stringify(ids.map(Number).filter(Boolean)), cookie: userCookie, timestamp: Date.now() });
+          const checked = await song_like_check({ ids: JSON.stringify(ids.map(Number).filter(Boolean)), cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
           const data = (checked.body && (checked.body.data || checked.body.ids)) || checked.body || {};
           if (Array.isArray(data)) likedIds = data.map(String);
           else if (data && typeof data === 'object') {
@@ -4615,7 +4623,7 @@ const server = http.createServer(async (req, res) => {
         console.warn('[LikeCheck] direct check failed:', e.message);
       }
       if (!likedIds.length) {
-        const r = await likelist({ uid: info.userId, cookie: userCookie, timestamp: Date.now() });
+        const r = await likelist({ uid: info.userId, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
         likedIds = ((r.body && r.body.ids) || []).map(String);
       }
       const set = new Set(likedIds);
@@ -4638,7 +4646,7 @@ const server = http.createServer(async (req, res) => {
       const id = body.id || url.searchParams.get('id');
       const nextLike = String(body.like != null ? body.like : (url.searchParams.get('like') || 'true')) !== 'false';
       if (!id) { sendJSON(res, { error: 'Missing song id' }, 400); return; }
-      const r = await like_song({ id, like: String(nextLike), cookie: userCookie, timestamp: Date.now() });
+      const r = await like_song({ id, like: String(nextLike), cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const code = (r.body && r.body.code) || r.code || 200;
       sendJSON(res, { loggedIn: true, id, liked: nextLike, code, body: r.body || r });
     } catch (err) {
@@ -4657,7 +4665,7 @@ const server = http.createServer(async (req, res) => {
       const name = String(body.name || url.searchParams.get('name') || '').trim();
       const privacy = String(body.privacy || url.searchParams.get('privacy') || '0');
       if (!name) { sendJSON(res, { error: 'Missing playlist name' }, 400); return; }
-      const r = await playlist_create({ name, privacy, cookie: userCookie, timestamp: Date.now() });
+      const r = await playlist_create({ name, privacy, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const created = (r.body && (r.body.playlist || r.body.data)) || {};
       sendJSON(res, { loggedIn: true, playlist: created, body: r.body || r });
     } catch (err) {
@@ -4682,7 +4690,7 @@ const server = http.createServer(async (req, res) => {
       let finalMessage = '';
       let success = false;
 
-      const primary = await playlist_tracks({ op: 'add', pid, tracks: String(id), cookie: userCookie, timestamp: Date.now() });
+      const primary = await playlist_tracks({ op: 'add', pid, tracks: String(id), cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       finalBody = primary.body || primary;
       finalCode = normalizeApiCode(primary);
       finalMessage = normalizeApiMessage(primary);
@@ -4691,7 +4699,7 @@ const server = http.createServer(async (req, res) => {
 
       if (!success && typeof playlist_track_add === 'function') {
         try {
-          const fallback = await playlist_track_add({ pid, ids: String(id), cookie: userCookie, timestamp: Date.now() });
+          const fallback = await playlist_track_add({ pid, ids: String(id), cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
           finalBody = fallback.body || fallback;
           finalCode = normalizeApiCode(fallback);
           finalMessage = normalizeApiMessage(fallback);
@@ -4727,7 +4735,7 @@ const server = http.createServer(async (req, res) => {
       let source = 'lyric';
       try {
         if (typeof lyric_new === 'function') {
-          const nr = await lyric_new({ id, cookie: userCookie, timestamp: Date.now() });
+          const nr = await lyric_new({ id, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
           body = nr.body || {};
           source = 'lyric_new';
         }
@@ -4735,7 +4743,7 @@ const server = http.createServer(async (req, res) => {
         console.warn('[LyricNew]', errNew.message);
       }
       if (!((body.lrc && body.lrc.lyric) || (body.yrc && body.yrc.lyric))) {
-        const r = await lyric({ id, cookie: userCookie, timestamp: Date.now() });
+        const r = await lyric({ id, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
         body = r.body || body || {};
         source = 'lyric';
       }
@@ -4759,7 +4767,7 @@ const server = http.createServer(async (req, res) => {
       const limit = Math.max(6, Math.min(50, parseInt(url.searchParams.get('limit') || '20', 10) || 20));
       const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0);
       if (!id) { sendJSON(res, { error: 'Missing song id', comments: [] }, 400); return; }
-      const r = await comment_music({ id, limit, offset, cookie: userCookie, timestamp: Date.now() });
+      const r = await comment_music({ id, limit, offset, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
       const body = r.body || r || {};
       const raw = body.hotComments && offset === 0 ? body.hotComments : (body.comments || []);
       const comments = (raw || []).map(c => ({
@@ -4785,21 +4793,21 @@ const server = http.createServer(async (req, res) => {
       if (!id) { sendJSON(res, { error: 'Missing artist id', songs: [] }, 400); return; }
       let detailBody = {};
       try {
-        const detail = await artist_detail({ id, cookie: userCookie, timestamp: Date.now() });
+        const detail = await artist_detail({ id, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
         detailBody = detail.body || detail || {};
       } catch (e) {
         console.warn('[ArtistDetail] detail failed:', e.message);
       }
       let rawSongs = [];
       try {
-        const list = await artist_songs({ id, order: 'hot', limit, offset: 0, cookie: userCookie, timestamp: Date.now() });
+        const list = await artist_songs({ id, order: 'hot', limit, offset: 0, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
         const b = list.body || list || {};
         rawSongs = (b.songs || (b.data && b.data.songs) || []);
       } catch (e) {
         console.warn('[ArtistSongs] hot failed:', e.message);
       }
       if (!rawSongs.length) {
-        const top = await artist_top_song({ id, cookie: userCookie, timestamp: Date.now() });
+        const top = await artist_top_song({ id, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
         const b = top.body || top || {};
         rawSongs = b.songs || [];
       }
@@ -4837,7 +4845,7 @@ const server = http.createServer(async (req, res) => {
       // 新版本 NeteaseCloudMusicApi 通常提供 playlist_track_all；旧版本退回 playlist_detail。
       if (typeof playlist_track_all === 'function') {
         try {
-          const all = await playlist_track_all({ id, limit: 500, offset: 0, cookie: userCookie, timestamp: Date.now() });
+          const all = await playlist_track_all({ id, limit: 500, offset: 0, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
           rawTracks = (all.body && (all.body.songs || all.body.tracks)) || [];
         } catch (err) {
           console.warn('[PlaylistTracks] playlist_track_all failed, fallback to detail:', err.message);
@@ -4845,7 +4853,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (!rawTracks.length && typeof playlist_detail === 'function') {
-        const detail = await playlist_detail({ id, s: 0, cookie: userCookie, timestamp: Date.now() });
+        const detail = await playlist_detail({ id, s: 0, cookie: userCookie, realIP: NETEASE_REAL_IP, timestamp: Date.now() });
         const pl = (detail.body && detail.body.playlist) || {};
         playlistMeta = { id: pl.id || id, name: pl.name || '', cover: pl.coverImgUrl || '', trackCount: pl.trackCount || 0 };
         rawTracks = pl.tracks || [];
