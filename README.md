@@ -9,7 +9,7 @@ BhandsMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成一�
 本项目基于开源项目 [Mineradio](https://github.com/XxHuberrr/Mineradio) 二次开发。
 
 <p align="center">
-  <img src="./public/assets/IdleIcon.png" width="720" alt="BhandsMusic 暗场启动页"/>
+  <img src="docs/screenshots/00-hero.jpg" width="720" alt="BhandsMusic 启动页"/>
 </p>
 
 ## ✨ 界面预览
