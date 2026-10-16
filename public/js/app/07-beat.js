@@ -498,21 +498,8 @@ async function analyzeAudioBeats(audioUrl, durationSec, token, options) {
       await yieldToIdle(beatAnalysisYieldMs(options, 110, 620));
       return renderedBand.getChannelData(0);
     }
-    var bands = [];
-    bands.push(await renderBand(38, 155));
-    if (token !== beatMapToken || !bands[0]) { hideBeatChip(); return null; }
-    bands.push(await renderBand(130, 420));
-    if (token !== beatMapToken || !bands[1]) { hideBeatChip(); return null; }
-    bands.push(await renderBand(420, 2600));
-    if (token !== beatMapToken || !bands[2]) { hideBeatChip(); return null; }
-    bands.push(await renderBand(1800, 9000));
-    if (token !== beatMapToken) { hideBeatChip(); return null; }
-    var lowPcm = bands[0];
-    var bodyPcm = bands[1];
-    var vocalPcm = bands[2];
-    var snapPcm = bands[3];
-
-    // 帧化能量 (10ms 窗口)
+    // (ported upstream PR #487) 峰值内存优化：逐份渲染→立即算能量→释放 PCM，
+    // 不再同时保留四份整曲滤波数据。
     var winSize = Math.floor(sr * 0.010);
     async function makeFrameEnergy(pcm) {
       var frames = Math.floor(pcm.length / winSize);
@@ -533,13 +520,14 @@ async function analyzeAudioBeats(audioUrl, durationSec, token, options) {
       return out;
     }
     var frameBands = [];
-    frameBands.push(await makeFrameEnergy(lowPcm));
-    await yieldToIdle(beatAnalysisYieldMs(options, 90, 520));
-    frameBands.push(await makeFrameEnergy(bodyPcm));
-    await yieldToIdle(beatAnalysisYieldMs(options, 90, 520));
-    frameBands.push(await makeFrameEnergy(vocalPcm));
-    await yieldToIdle(beatAnalysisYieldMs(options, 90, 520));
-    frameBands.push(await makeFrameEnergy(snapPcm));
+    var bandSpecs = [[38, 155], [130, 420], [420, 2600], [1800, 9000]];
+    for (var bi = 0; bi < bandSpecs.length; bi++) {
+      var pcm = await renderBand(bandSpecs[bi][0], bandSpecs[bi][1]);
+      if (token !== beatMapToken || !pcm) { hideBeatChip(); return null; }
+      frameBands.push(await makeFrameEnergy(pcm));
+      if (bi < bandSpecs.length - 1) await yieldToIdle(beatAnalysisYieldMs(options, 90, 520));
+      pcm = null; // 释放该份滤波 PCM，能量数组远小于原始数据
+    }
     if (token !== beatMapToken || !frameBands[0] || !frameBands[1] || !frameBands[2] || !frameBands[3]) { hideBeatChip(); return null; }
     var energy = frameBands[0];
     var bodyEnergy = frameBands[1];
