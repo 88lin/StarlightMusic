@@ -44,6 +44,9 @@ function makeSandbox() {
   const body = [
     'let qqCookie = "";',
     'const QQ_COOKIE_FILE = "";',
+    // (PR #278 port) 沙盒内无 Electron，Cookie 加密写盘退化为明文直写
+    'function cookieEncryptionAvailable() { return false; }',
+    'function writeCookieFileValue(file, value) { try { fs.writeFileSync(file, String(value || "")); } catch (e) {} }',
     // 真实源码
     'const QQ_SONG_URL_CACHE_TTL = ' + extractScalar(src, 'QQ_SONG_URL_CACHE_TTL') + ';',
     'const QQ_SONG_URL_CACHE_MAX = ' + extractScalar(src, 'QQ_SONG_URL_CACHE_MAX') + ';',
