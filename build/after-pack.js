@@ -71,6 +71,13 @@ function toBatQuoted(arg) {
 }
 
 async function execFileSyncWithBashFallback(rceditPath, args) {
+  // 非 Windows 平台必须经 wine 执行 rcedit（PE 二进制），直接 spawn 会被当 shell 脚本
+  if (process.platform !== 'win32') {
+    const wine = process.env.STARLIGHTMUSIC_WINE || 'wine';
+    const output = execFileSync(wine, [rceditPath].concat(args), { encoding: 'utf8' });
+    if (output) process.stdout.write(output);
+    return;
+  }
   try {
     const output = execFileSync(rceditPath, args, { encoding: 'utf8' });
     if (output) process.stdout.write(output);
