@@ -34,9 +34,19 @@ BhandsMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成一�
 | ![](docs/screenshots/14-sonic.png)<br>**声波地形** | ![](docs/screenshots/15-spiral.jpg)<br>**螺旋星云** | ![](docs/screenshots/16-jelly.jpg)<br>**水母花** |
 | ![](docs/screenshots/17-rose.jpg)<br>**玫瑰** | ![](docs/screenshots/18-heart.jpg)<br>**心跳** | ![](docs/screenshots/19-rain.png)<br>**字符雨** |
 
-## 立即下载 Windows 安装包
+## 立即下载
 
 **当前版本：`v2.2.3`** → [点击下载最新版](https://github.com/Bhands6/BhandsMusicChange/releases/latest)
+
+在 Release 页面认准对应平台的文件名：
+
+| 平台 | 下载这个 | 说明 |
+|---|---|---|
+| **Windows 10 / 11**（x64） | `…-Setup.exe` | NSIS 安装包，支持轻量补丁增量更新 |
+| **macOS**（Apple 芯片：M1 / M2 / M3 / M4…） | `…-mac-arm64.dmg` | 拖入「应用程序」即可 |
+| **macOS**（Intel 芯片） | `…-mac-x64.dmg` | 拖入「应用程序」即可 |
+
+> **macOS 首次打开被拦截？** 应用为 ad-hoc 签名、未做 Apple 公证，请在「系统设置 → 隐私与安全性」中点击「仍要打开」，或右键应用图标选择「打开」。
 
 
 ## 核心特性
@@ -56,7 +66,8 @@ BhandsMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成一�
 - 右键唤起 3D 歌单架，支持歌单队列浏览
 - 网易云音乐账号、搜索、歌单、播客等体验接入
 - QQ 音乐搜索、登录态与音源补充接入
-- GitHub Releases 更新检测与下载入口（支持轻量补丁与完整安装包，多线路自动切换）
+- GitHub Releases 更新检测与下载入口（Windows 支持轻量补丁增量更新与完整安装包、多线路自动切换；macOS 走完整 dmg）
+- 跨平台桌面应用：Windows 10 / 11（x64）与 macOS（Apple 芯片 / Intel）双平台安装包
 - 首次启动内置「默认测试」视觉用户存档，软件内默认视觉参数与该存档一致
 
 
@@ -64,12 +75,46 @@ BhandsMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成一�
 ## 开发运行
 
 ```bash
-npm install
-npm start
-npm run build:win
+npm install              # 安装依赖
+
+npm start                # 本地启动（Electron）
+npm run start:win        # Windows 启动（额外把控制台代码页切到 UTF-8，避免中文日志乱码）
+
+npm run build:win        # Windows NSIS 安装包（x64）
+npm run build:mac        # macOS 安装包（Apple 芯片 / arm64）
+npm run build:mac:x64    # macOS 安装包（Intel / x64）
+npm run build:mac:dir    # 只解包不做 dmg，便于本地调试
 ```
 
-桌面版入口由 Electron 主进程加载本地服务。`npm run build:win` 会生成 Windows NSIS 安装包，产物位于 `dist/`。
+桌面版入口由 Electron 主进程加载本地服务，产物统一落在 `dist/`：
+
+| 命令 | 说明 | 产物 |
+|---|---|---|
+| `build:win` | Windows NSIS 安装包 | `BhandsMusic-<版本>-Setup.exe` + `latest.yml` |
+| `build:mac` / `build:mac:x64` | macOS dmg | `BhandsMusic-<版本>-mac-<架构>.dmg` + `latest-mac.yml` |
+
+> 打包前会自动执行对应的 `prebuild:*`：按目标平台与架构拉取内置换源二进制、酷狗 API 与启动动画素材。
+
+## 更新机制
+
+应用启动后会检测 GitHub Releases 上的新版本，两个平台走不同的路径：
+
+| 平台 | 更新方式 |
+|---|---|
+| **Windows** | 支持「轻量补丁」增量更新与完整安装包两条路径，多线路（含国内镜像）自动切换 |
+| **macOS** | 仅支持完整 dmg：应用下载 dmg 后自动打开它、同时打开「应用程序」文件夹，把 BhandsMusic 拖进去覆盖即可 |
+
+> macOS 走手动替换是刻意的：macOS 不允许替换正在运行的 `.app`，未做 Apple 公证的应用也无法静默自更新；而且补丁需要写入已签名的应用包内部，会直接破坏代码签名。因此 macOS 版不提供轻量补丁，发布时也不会上传 `.patch.json`。
+
+## 测试与校验
+
+```bash
+npm test                  # 单元测试（node --test）
+npm run check:hoisting    # 跨 script 函数提升校验
+npm run check:reorg       # 加载期读写顺序等价校验
+```
+
+`public/js/app/` 下的 19 个前端文件由原 `main.js` 按职责拆分而来，**加载期读写顺序有基线锁定**（`scripts/reorg/load-order-baseline.json`）。改动其中任何顶层代码后请跑一遍 `npm run check:reorg`，顺序不等价会被直接拦下；新增顶层函数同样会触发该闸门（函数声明哈希只取函数名，改函数体不会误报）。
 
 ## 📁 项目结构
 
@@ -136,20 +181,23 @@ BhandsMusicChange/
 │   ├── fetch-go-music-api.js         # 拉取内置换源二进制
 │   ├── fetch-kugou-api.js            # 拉取酷狗概念版 API
 │   ├── fetch-splash-video.js         # 拉取启动动画
-│   ├── after-pack.js                 # 打包后处理
-│   └── installer.nsh                 # NSIS 安装脚本定制
+│   ├── after-pack.js                 # 打包后处理（含 macOS ad-hoc 签名）
+│   ├── installer.nsh                 # NSIS 安装脚本定制
+│   ├── icon.icns / icon.ico / icon.png   # 应用图标（macOS / Windows / 通用）
+│   └── tray-icon.png（+ @2x）         # 托盘图标（macOS / Linux）
 │
 ├── scripts/                          # 验证探针与闸门
 │   ├── probe-*.js                    # 离屏 Electron 实测探针（UI / 取景 / 歌词）
 │   ├── check-app-hoisting.js         # 跨 script 函数提升校验
 │   ├── check-app-reorg.js            # 加载期读写顺序等价校验
+│   ├── create-self-signed-cert.sh    # 本机自签名证书生成（macOS 打包辅助）
 │   ├── lib/                          # 公共库（AST 扫描等）
 │   └── reorg/                        # 重排基线与迁移工具
 │
-├── tests/                            # 单元测试（node --test）
+├── tests/                            # 单元测试（node --test，含更新链路平台感知闸门）
 ├── docs/                             # 项目文档与界面截图
 ├── vendor/                           # 构建前按需拉取的内置服务（不入库）
-└── dist/                             # 打包产物（NSIS 安装包）
+└── dist/                             # 打包产物（NSIS 安装包 / dmg / 更新清单）
 ```
 
 ## 第三方音乐平台说明
