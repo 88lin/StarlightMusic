@@ -1341,8 +1341,21 @@ function clearQueue() {
 }
 function removeFromQueue(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
+  var removingCurrent = idx === currentIdx;
   playQueue.splice(idx, 1);
   if (currentIdx >= playQueue.length) currentIdx = playQueue.length - 1;
+  // (ported upstream issue #438) 移除的正是正在播放的歌曲时自动切到下一首；
+  // 队列空了就停掉播放，而不是让已移除的歌继续播。
+  if (removingCurrent) {
+    if (playQueue.length) {
+      var nextIdx = Math.min(currentIdx, playQueue.length - 1);
+      currentIdx = nextIdx;
+      Promise.resolve(playQueueAt(nextIdx)).catch(function(){});
+    } else {
+      currentIdx = -1;
+      try { if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); } } catch (e) {}
+    }
+  }
   safeRenderQueuePanel('remove-queue-item');
   safeShelfRebuild('remove-queue-item');
   updateCustomCoverButton();
