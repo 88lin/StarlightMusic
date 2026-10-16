@@ -51,6 +51,9 @@ function makeSandbox() {
     'const QQ_SONG_URL_CACHE_TTL = ' + extractScalar(src, 'QQ_SONG_URL_CACHE_TTL') + ';',
     'const QQ_SONG_URL_CACHE_MAX = ' + extractScalar(src, 'QQ_SONG_URL_CACHE_MAX') + ';',
     'const qqSongUrlCache = new Map();',
+    extractFunction(src, 'qqProbePlayable'),
+    // 测试环境探测直接视为可拉流（沙盒无网络）
+    'function qqProbePlayable() { return Promise.resolve(true); }',
     extractFunction(src, 'readQqSongUrlCache'),
     extractFunction(src, 'writeQqSongUrlCache'),
     extractFunction(src, 'saveQQCookie'),
