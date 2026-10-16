@@ -4,7 +4,7 @@
  * 临时构建包装：把 after-pack 的 rcedit 步骤延后到 electron-builder 打包完成之后。
  *
  * 为什么需要（本机环境问题，与产品代码无关）：
- * electron-builder 解压完 200MB+ 的 BhandsMusic.exe 后立刻调用 rcedit 写图标/版本，
+ * electron-builder 解压完 200MB+ 的 StarlightMusic.exe 后立刻调用 rcedit 写图标/版本，
  * 此时杀软仍在扫描该文件，rcedit 报 "unable to commit changes"。
  * after-pack.js 里已有重试，但 5 次 × 1s 对这种扫描窗口不够。
  * 手工单独跑同一个 exe 100% 成功 —— 说明文件本身没问题，纯粹是时序竞争。

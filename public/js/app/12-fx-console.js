@@ -744,7 +744,7 @@ function userFxArchiveExportPayload(slot) {
   };
 }
 function safeArchiveFileName(name) {
-  return String(name || 'BhandsMusic 用户存档').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 48) + '.json';
+  return String(name || 'StarlightMusic 用户存档').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 48) + '.json';
 }
 function exportUserFxArchive(index) {
   var slot = userFxArchiveAt(index);

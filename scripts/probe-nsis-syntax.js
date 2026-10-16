@@ -99,11 +99,11 @@ function checkStatic() {
   for (const m of missing) console.log('     installer.nsh:' + m.line + ' Call ' + m.name + ' —— 找不到对应的 Function');
 
   console.log('\n[2] 静态自检：抹掉一个 Function 定义后必须报缺（防止检查假绿）');
-  const mutated = src.replace(/^Function BhandsMusicNormalizeInstallDir\s*$/m, '');
+  const mutated = src.replace(/^Function StarlightMusicNormalizeInstallDir\s*$/m, '');
   assert('变异生效（定义确实被抹掉）', true, mutated !== src);
   const mutatedMissing = missingCallTargets(mutated);
   assert(
-    '变异后报出 BhandsMusicNormalizeInstallDir 缺失',
+    '变异后报出 StarlightMusicNormalizeInstallDir 缺失',
     true,
     mutatedMissing.some((m) => m.name.toLowerCase() === 'bhandsmusicnormalizeinstalldir')
   );
@@ -158,7 +158,7 @@ function checkBitmaps() {
  * ------------------------------------------------------------------ */
 
 /**
- * `installerSidebar.bmp` 底部曾经烙死了「安装 / D:\BhandsMusic」两行像素，
+ * `installerSidebar.bmp` 底部曾经烙死了「安装 / D:\StarlightMusic」两行像素，
  * 导致用户在目录页改路径后左下角永远显示旧路径（2026-10-15 用户截图反馈）。
  * 现已由 scripts/sidebar-erase-install-path.js 擦掉，改由 installer.nsh 动态绘制。
  *
@@ -326,7 +326,7 @@ function buildProbeSource(outExe, extraSectionBody) {
     '; electron-builder 在 include installer.nsh 之前注入的定义与变量',
     '!define APP_GUID "com.bhandsmusic.desktop"',
     '!define UNINSTALL_APP_KEY "bhandsmusic-probe-uninstall-key"',
-    '!define PRODUCT_FILENAME "BhandsMusic"',
+    '!define PRODUCT_FILENAME "StarlightMusic"',
     '!define MUI_WELCOMEFINISHPAGE_BITMAP "' + winPath(path.join(REPO, 'build', 'installerSidebar.bmp')) + '"',
     '',
     '!include "MUI2.nsh"',
@@ -363,7 +363,7 @@ function checkCompile() {
   fs.writeFileSync(POSITIVE_NSI, BOM + buildProbeSource(POSITIVE_EXE, ''), 'utf8');
   fs.writeFileSync(
     NEGATIVE_NSI,
-    BOM + buildProbeSource(NEGATIVE_EXE, '  Call BhandsMusicProbeDefinitelyMissingFunction'),
+    BOM + buildProbeSource(NEGATIVE_EXE, '  Call StarlightMusicProbeDefinitelyMissingFunction'),
     'utf8'
   );
 
@@ -407,7 +407,7 @@ function checkCompile() {
   assert(
     '负向脚本报出未定义函数',
     true,
-    /resolving install function .*BhandsMusicProbeDefinitelyMissingFunction/i.test(neg.output)
+    /resolving install function .*StarlightMusicProbeDefinitelyMissingFunction/i.test(neg.output)
   );
 }
 

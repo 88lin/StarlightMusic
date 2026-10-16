@@ -245,7 +245,7 @@ function updateMemoryControls() {
     el.classList.remove('dev-locked');
     el.setAttribute('aria-disabled', 'false');
     el.title = systemAvailable
-      ? '系统级释放只在 BhandsMusic 隐藏/最小化且阈值、间隔允许时执行。'
+      ? '系统级释放只在 StarlightMusic 隐藏/最小化且阈值、间隔允许时执行。'
       : '系统级释放尚未获得桌面进程确认；播放器进程压缩仍然生效。';
   });
   document.querySelectorAll('#memory-mask-seg [data-memory-mask]').forEach(function (btn) {
@@ -259,13 +259,13 @@ function updateMemoryControls() {
       btn.disabled = !systemAvailable;
       btn.classList.toggle('dev-locked', !systemAvailable);
       btn.title = systemAvailable
-        ? '手动系统内存释放；BhandsMusic 前台可见时会自动跳过，避免卡顿。'
+        ? '手动系统内存释放；StarlightMusic 前台可见时会自动跳过，避免卡顿。'
         : '系统级释放不可用；后台播放器压缩仍然生效。';
     } else if (index > 1) {
       btn.disabled = !systemAvailable;
       btn.classList.toggle('dev-locked', !systemAvailable);
       btn.title = systemAvailable
-        ? '提权释放；请先最小化或隐藏 BhandsMusic，前台可见时会跳过。'
+        ? '提权释放；请先最小化或隐藏 StarlightMusic，前台可见时会跳过。'
         : '系统级释放不可用；后台播放器压缩仍然生效。';
     }
   });

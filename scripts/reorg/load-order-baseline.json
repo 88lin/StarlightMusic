@@ -3891,13 +3891,13 @@
     "resizeHandCanvas": {
       "6de4d5b721e72779": false
     },
-    "drawBhandsMusicSplash": {
+    "drawStarlightMusicSplash": {
       "ff4b3aba39992437": false
     },
-    "drawBhandsMusicSplashWebgl": {
+    "drawStarlightMusicSplashWebgl": {
       "ff4b3aba39992437": false
     },
-    "initBhandsMusicSplashWebgl": {
+    "initStarlightMusicSplashWebgl": {
       "ff4b3aba39992437": false
     },
     "reduceSplashMotion": {

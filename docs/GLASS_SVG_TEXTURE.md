@@ -1,4 +1,4 @@
-# BhandsMusic SVG Glass Texture
+# StarlightMusic SVG Glass Texture
 
 这是用户明确要求保存的播放器 SVG 玻璃质感基线。后续可以修补偏移、缺角、套用范围和响应式问题，但不要随意重写核心质感。
 

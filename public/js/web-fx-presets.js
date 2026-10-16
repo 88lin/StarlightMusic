@@ -2,7 +2,7 @@
 //  Web 版新增 9 个粒子特效 · 移植到桌面版
 //  极光 / 万花筒 / 迸发 / 声波地形 / 螺旋星云 / 水母花 / 玫瑰 / 心跳 / 字符雨
 //
-//  来源：BhandsMusic_Web/apps/web/src/components/particleShaders.ts + ParticleStage.tsx
+//  来源：StarlightMusic_Web/apps/web/src/components/particleShaders.ts + ParticleStage.tsx
 //  桌面预设索引（保留 0–5 原 shader + 6 安魂 + 7/8 音域回响）：
 //    9 极光 · 10 万花筒 · 11 迸发 · 12 声波地形 · 13 螺旋星云
 //    14 水母花 · 15 玫瑰 · 16 心跳 · 17 字符雨

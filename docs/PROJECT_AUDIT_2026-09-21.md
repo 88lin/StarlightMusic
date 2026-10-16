@@ -1,7 +1,7 @@
-# BhandsMusicChange 全盘扫描报告
+# StarlightMusicChange 全盘扫描报告
 
 扫描时间：2026-09-21 10:0x
-扫描范围：`BhandsMusic/BhandsMusicChange`（活跃仓库）+ 对照 `BhandsMusic_Web/Bhands_Web`、`MineraMusic/Mineradio`
+扫描范围：`StarlightMusic/StarlightMusicChange`（活跃仓库）+ 对照 `StarlightMusic_Web/Bhands_Web`、`MineraMusic/Mineradio`
 扫描方式：静态检查（重复声明 / 重复 id / 死选择器 / 文档漂移 / git 卫生）+ Electron 真实加载页面抓控制台错误
 
 > 每条都附了**验证方法**，你回来可以直接照着复核。
@@ -108,7 +108,7 @@ git check-ignore -v .music-sources.json   # 无输出 = 未被忽略
 |---|---|
 | `package.json` `version` | **1.5.0** |
 | `README.md`「当前版本」 | v1.4.0 |
-| README 里的安装包名 | `BhandsMusic-1.4.0-Setup.exe` |
+| README 里的安装包名 | `StarlightMusic-1.4.0-Setup.exe` |
 
 **验证**：
 ```bash
@@ -182,7 +182,7 @@ grep -rln "桌面" docs/ README.md
 
 ### C3. Web 版 README 与 docker-compose 不符
 
-`BhandsMusic_Web/Bhands_Web/README.md`：
+`StarlightMusic_Web/Bhands_Web/README.md`：
 - 第 127 行：`GO_MUSIC_API_URL` 说明写「容器编排内自动注入」
 - 第 162 行：结构树写 `docker-compose.yml # 生产部署编排（web + caddy + go-music-api）`
 
@@ -190,8 +190,8 @@ grep -rln "桌面" docs/ README.md
 
 **验证**：
 ```bash
-grep -c "go-music-api" BhandsMusic_Web/Bhands_Web/docker-compose.yml   # 0
-grep -n "go-music-api" BhandsMusic_Web/Bhands_Web/README.md            # 127 / 162 行
+grep -c "go-music-api" StarlightMusic_Web/Bhands_Web/docker-compose.yml   # 0
+grep -n "go-music-api" StarlightMusic_Web/Bhands_Web/README.md            # 127 / 162 行
 ```
 
 ---
@@ -201,7 +201,7 @@ grep -n "go-music-api" BhandsMusic_Web/Bhands_Web/README.md            # 127 / 1
 ### D1. ⚠️ Change 仓库有 54 个提交未推送
 
 ```bash
-git -C BhandsMusic/BhandsMusicChange rev-list --count @{u}..HEAD   # 54
+git -C StarlightMusic/StarlightMusicChange rev-list --count @{u}..HEAD   # 54
 ```
 本地领先远端 54 个提交（含今天全部工作），**只存在于这台机器上**。
 
@@ -228,8 +228,8 @@ git -C BhandsMusic/BhandsMusicChange rev-list --count @{u}..HEAD   # 54
 
 | 仓库 | 体积 |
 |---|---|
-| `BhandsMusicChange` | **563 MB**（主要是 node_modules）|
-| `BhandsMusic_Web` | 24 MB |
+| `StarlightMusicChange` | **563 MB**（主要是 node_modules）|
+| `StarlightMusic_Web` | 24 MB |
 | `MineraMusic/Mineradio` | 21 MB |
 
 `MineraMusic/Mineradio` 是上游参考基线，当前**没有任何改动**（0 未推送、无脏文件）。如果不再需要对照，可以移出工作区省空间。
@@ -244,7 +244,7 @@ git -C BhandsMusic/BhandsMusicChange rev-list --count @{u}..HEAD   # 54
 - ✅ `index.html` 无重复 `id`（0 处）
 - ✅ `main.js` 里 `console.log` 仅 20 处，无调试刷屏
 - ✅ 内置换源二进制 `vendor/go-music-api/` 已被正确 gitignore
-- ✅ `BhandsMusic_Web` / `MineraMusic` 两个仓库干净（0 脏文件、0 未推送）
+- ✅ `StarlightMusic_Web` / `MineraMusic` 两个仓库干净（0 脏文件、0 未推送）
 
 ---
 

@@ -195,7 +195,7 @@ async function restoreLastPlaybackSession() {
     if (position > 2) pendingResumeAt = { key: restoredCurrentKey, position: position };
 
     try {
-      document.getElementById('thumb-title').textContent = current.name || 'BhandsMusic';
+      document.getElementById('thumb-title').textContent = current.name || 'StarlightMusic';
       document.getElementById('thumb-artist').textContent = current.artist || '';
       updateControlTrackInfo(current);
       document.getElementById('thumb-wrap').classList.add('visible');

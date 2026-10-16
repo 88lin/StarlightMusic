@@ -131,7 +131,7 @@ const QQ_COOKIE_FILE = process.env.QQ_COOKIE_FILE || path.join(PROJECT_ROOT, '.q
 const UPDATE_WORK_DIR = process.env.BHANDSMUSIC_UPDATE_DIR || path.join(PROJECT_ROOT, 'updates');         // 更新工作目录
 const UPDATE_DOWNLOAD_DIR = process.env.BHANDSMUSIC_UPDATE_DOWNLOAD_DIR || path.join(UPDATE_WORK_DIR, 'downloads');  // 更新下载目录
 const UPDATE_PATCH_BACKUP_DIR = process.env.BHANDSMUSIC_PATCH_BACKUP_DIR || path.join(UPDATE_WORK_DIR, 'backups', 'patches');  // 补丁备份目录
-const BEATMAP_CACHE_DIR = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\BhandsMusicCache\\beatmaps';  // 节拍映射缓存目录
+const BEATMAP_CACHE_DIR = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';  // 节拍映射缓存目录
 // cuefield 反馈记录：桌面端 main.js 注入 userData 下的路径；裸跑（如本地调试）时退回仓库根。
 const CUEFIELD_FEEDBACK_FILE = process.env.BHANDSMUSIC_CUEFIELD_FEEDBACK_FILE || path.join(PROJECT_ROOT, 'cuefield-feedback.jsonl');
 const MUSIC_SOURCES_CONFIG_FILE = path.join(PROJECT_ROOT, '.music-sources.json');  // 音源配置文件
@@ -610,7 +610,7 @@ function publicDownloadUrls(candidates) {
 }
 function normalizeVersion(value) {
   var raw = String(value || '').trim();
-  // 优先提取 x.y.z[.w] 格式的版本号（兼容 BhandsMusic-V1.2.0 等带前缀的 tag；
+  // 优先提取 x.y.z[.w] 格式的版本号（兼容 StarlightMusic-V1.2.0 等带前缀的 tag；
   // 2026-09-24 审查修正：原来只取前三段，四段构建号会被截断判等）
   var m = raw.match(/(\d+(?:\.\d+){1,3})/);
   if (m) return m[1];
@@ -685,7 +685,7 @@ function preferCurrentArch(list) {
 /** 当前平台的兜底安装包文件名（清单里缺 path 时使用） */
 function defaultInstallerName(version) {
   const v = version || APP_VERSION;
-  return IS_MAC ? `BhandsMusic-${v}-mac-${UPDATE_ARCH}.dmg` : `BhandsMusic-${v}-Setup.exe`;
+  return IS_MAC ? `StarlightMusic-${v}-mac-${UPDATE_ARCH}.dmg` : `StarlightMusic-${v}-Setup.exe`;
 }
 function pickReleaseAsset(assets) {
   const list = Array.isArray(assets) ? assets : [];
@@ -767,7 +767,7 @@ function normalizeManifestUpdateInfo(data) {
   const assetUrls = [downloadUrl].concat(Array.isArray(asset.downloadUrls) ? asset.downloadUrls : []);
   const patchUrls = patch ? [patch.downloadUrl].concat(Array.isArray(patch.downloadUrls) ? patch.downloadUrls : []) : [];
   const patchInfo = patch && patch.downloadUrl ? {
-    name: patch.name || updateAssetNameFromUrl(patch.downloadUrl) || `BhandsMusic-${APP_VERSION}→${latestVersion}.patch.json`,
+    name: patch.name || updateAssetNameFromUrl(patch.downloadUrl) || `StarlightMusic-${APP_VERSION}→${latestVersion}.patch.json`,
     size: Number(patch.size || 0) || 0,
     contentType: patch.contentType || patch.content_type || 'application/json',
     downloadUrl: patch.downloadUrl,
@@ -797,7 +797,7 @@ function normalizeManifestUpdateInfo(data) {
     latestVersion,
     release: {
       tagName: release.tagName || release.tag_name || data.tagName || ('v' + latestVersion),
-      name: release.name || data.name || ('BhandsMusic v' + latestVersion),
+      name: release.name || data.name || ('StarlightMusic v' + latestVersion),
       version: latestVersion,
       publishedAt: release.publishedAt || release.published_at || data.publishedAt || '',
       htmlUrl: release.htmlUrl || release.html_url || data.htmlUrl || '',
@@ -816,7 +816,7 @@ async function readUpdateManifest(ref) {
   if (!value) throw new Error('UPDATE_MANIFEST_MISSING');
   if (/^https?:\/\//i.test(value)) {
     const resp = await fetch(value, {
-      headers: { 'User-Agent': `BhandsMusic/${APP_VERSION}` },
+      headers: { 'User-Agent': `StarlightMusic/${APP_VERSION}` },
     });
     if (!resp.ok) throw new Error('Update manifest ' + resp.status);
     return resp.json();
@@ -908,7 +908,7 @@ function localUpdateFallback(reason, opts) {
     latestVersion: APP_VERSION,
     release: {
       tagName: 'v' + APP_VERSION,
-      name: 'BhandsMusic v' + APP_VERSION,
+      name: 'StarlightMusic v' + APP_VERSION,
       version: APP_VERSION,
       htmlUrl: '',
       downloadUrl: '',
@@ -1046,7 +1046,7 @@ async function probeCandidateSpeed(url, timeoutMs, maxBytes) {
   try {
     const resp = await updateAwareFetch(url, {
       headers: {
-        'User-Agent': `BhandsMusic/${APP_VERSION}`,
+        'User-Agent': `StarlightMusic/${APP_VERSION}`,
         'Range': `bytes=0-${cap - 1}`,
       },
       signal: controller.signal,
@@ -1108,8 +1108,8 @@ function cleanupUpdateDownloadsOnBoot() {
           removed++;
           return;
         }
-        // 安装包命名：Windows = BhandsMusic-x.y.z-Setup.exe；macOS = BhandsMusic-x.y.z-mac-<arch>.dmg
-        if (!/^BhandsMusic-\d+(?:\.\d+){1,3}(?:-Setup\.exe|-mac-(?:arm64|x64)\.dmg)$/i.test(name)) return;
+        // 安装包命名：Windows = StarlightMusic-x.y.z-Setup.exe；macOS = StarlightMusic-x.y.z-mac-<arch>.dmg
+        if (!/^StarlightMusic-\d+(?:\.\d+){1,3}(?:-Setup\.exe|-mac-(?:arm64|x64)\.dmg)$/i.test(name)) return;
         const cmp = compareVersions(normalizeVersion(name), APP_VERSION);
         if (cmp > 0) return; // 比当前运行版本还新 = 还没安装的更新包，保留
         if (cmp < 0 || stat.mtimeMs < bootTime) {
@@ -1130,7 +1130,7 @@ async function fetchTextFromCandidates(candidates, timeoutMs) {
     const candidate = list[i];
     try {
       const resp = await fetchWithTimeout(candidate.url, {
-        headers: { 'User-Agent': `BhandsMusic/${APP_VERSION}` },
+        headers: { 'User-Agent': `StarlightMusic/${APP_VERSION}` },
       }, timeoutMs || 6500);
       if (!resp.ok) throw updateError('HTTP_' + resp.status, 'HTTP ' + resp.status);
       return { text: await resp.text(), candidate };
@@ -1148,7 +1148,7 @@ function yamlScalar(text, key) {
   return match[1].trim().replace(/^['"]|['"]$/g, '');
 }
 function githubReleaseDownloadUrl(version, fileName) {
-  const tag = 'BhandsMusic-V' + normalizeVersion(version);
+  const tag = 'StarlightMusic-V' + normalizeVersion(version);
   const encodedOwner = encodeURIComponent(UPDATE_CONFIG.owner);
   const encodedRepo = encodeURIComponent(UPDATE_CONFIG.repo);
   const encodedName = String(fileName || '').split('/').map(part => encodeURIComponent(part)).join('/');
@@ -1220,10 +1220,10 @@ function parseLatestYmlUpdateInfo(text, reason) {
     latestVersion,
     release: {
       tagName: 'v' + latestVersion,
-      name: 'BhandsMusic v' + latestVersion,
+      name: 'StarlightMusic v' + latestVersion,
       version: latestVersion,
       publishedAt: releaseDate,
-      htmlUrl: `https://github.com/${UPDATE_CONFIG.owner}/${UPDATE_CONFIG.repo}/releases/tag/BhandsMusic-V${latestVersion}`,
+      htmlUrl: `https://github.com/${UPDATE_CONFIG.owner}/${UPDATE_CONFIG.repo}/releases/tag/StarlightMusic-V${latestVersion}`,
       downloadUrl,
       asset,
       patch: null,
@@ -1254,7 +1254,7 @@ async function fetchLatestUpdateInfo() {
     const resp = await fetch(apiUrl, {
       signal: controller.signal,
       headers: {
-        'User-Agent': `BhandsMusic/${APP_VERSION}`,
+        'User-Agent': `StarlightMusic/${APP_VERSION}`,
         'Accept': 'application/vnd.github+json',
       },
     });
@@ -1275,7 +1275,7 @@ async function fetchLatestUpdateInfo() {
       latestVersion,
       release: {
         tagName: data.tag_name || ('v' + latestVersion),
-        name: data.name || ('BhandsMusic v' + latestVersion),
+        name: data.name || ('StarlightMusic v' + latestVersion),
         version: latestVersion,
         publishedAt: data.published_at || '',
         htmlUrl: data.html_url || '',
@@ -1483,7 +1483,7 @@ async function downloadUpdateAssetWithMirrors(job) {
       job.message = job.total ? '正在下载完整安装包' : '正在下载完整安装包，等待服务器返回大小';
 
       const resp = await fetchWithTimeout(candidate.url, {
-        headers: { 'User-Agent': `BhandsMusic/${APP_VERSION}` },
+        headers: { 'User-Agent': `StarlightMusic/${APP_VERSION}` },
       }, 14000);
       if (!resp.ok) throw updateError('HTTP_' + resp.status, 'HTTP ' + resp.status);
 
@@ -1680,7 +1680,7 @@ async function downloadPatchBufferFromCandidate(job, candidate, index, total) {
   job.updatedAt = Date.now();
 
   const resp = await fetchWithTimeout(candidate.url, {
-    headers: { 'User-Agent': `BhandsMusic/${APP_VERSION}` },
+    headers: { 'User-Agent': `StarlightMusic/${APP_VERSION}` },
   }, 12000);
   if (!resp.ok) throw updateError('HTTP_' + resp.status, 'HTTP ' + resp.status);
 
@@ -3836,7 +3836,7 @@ const server = http.createServer(async (req, res) => {
    * Windows 允许 127.0.0.1 同端口被其他应用（如残留的 Mineradio）双绑定，
    * 此时本 server"绑定成功"却收不到流量，必须靠身份自检识别并换端口。 */
   if (pn === '/__bhands_identity') {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'X-BhandsMusic-Server': String(APP_VERSION) });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'X-StarlightMusic-Server': String(APP_VERSION) });
     res.end(JSON.stringify({ app: 'bhandsmusic', version: APP_VERSION, port: PORT }));
     return;
   }
@@ -3845,7 +3845,7 @@ const server = http.createServer(async (req, res) => {
   if (pn === '/api/app/version') {
     sendJSON(res, {
       name: APP_PACKAGE.name || 'bhandsmusic',
-      productName: APP_PACKAGE.productName || 'BhandsMusic',
+      productName: APP_PACKAGE.productName || 'StarlightMusic',
       version: APP_VERSION,
       platform: UPDATE_PLATFORM,
       arch: UPDATE_ARCH,

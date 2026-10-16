@@ -1,9 +1,9 @@
 {
   "name": "bhandsmusic",
-  "productName": "BhandsMusic",
+  "productName": "StarlightMusic",
   "version": "2.2.3",
   "description": "沉浸式音乐播放器，融合天气电台、歌词舞台、粒子视觉和 3D 歌单架。",
-  "author": "BhandsMusic",
+  "author": "StarlightMusic",
   "main": "desktop/main.js",
   "private": true,
   "config": {
@@ -34,7 +34,7 @@
   },
   "build": {
     "appId": "com.bhandsmusic.desktop",
-    "productName": "BhandsMusic",
+    "productName": "StarlightMusic",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -67,7 +67,7 @@
       "vendor/kugou-api/**/*"
     ],
     "win": {
-      "executableName": "BhandsMusic",
+      "executableName": "StarlightMusic",
       "icon": "build/icon.ico",
       "signAndEditExecutable": false,
       "target": [
@@ -85,13 +85,13 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "BhandsMusic",
+      "shortcutName": "StarlightMusic",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/installerSidebar.bmp",
       "include": "build/installer.nsh",
-      "artifactName": "BhandsMusic-${version}-Setup.${ext}"
+      "artifactName": "StarlightMusic-${version}-Setup.${ext}"
     },
     "mac": {
       "icon": "build/icon.icns",
@@ -105,15 +105,15 @@
           ]
         }
       ],
-      "artifactName": "BhandsMusic-${version}-mac-${arch}.${ext}",
+      "artifactName": "StarlightMusic-${version}-mac-${arch}.${ext}",
       "extendInfo": {
-        "NSHumanReadableCopyright": "BhandsMusic",
+        "NSHumanReadableCopyright": "StarlightMusic",
         "NSMicrophoneUsageDescription": "用于音频可视化与 DJ 分析功能采集音频输入。"
       }
     },
     "dmg": {
-      "title": "BhandsMusic ${version}",
-      "artifactName": "BhandsMusic-${version}-mac-${arch}.${ext}",
+      "title": "StarlightMusic ${version}",
+      "artifactName": "StarlightMusic-${version}-mac-${arch}.${ext}",
       "contents": [
         {
           "x": 140,
@@ -131,7 +131,7 @@
       {
         "provider": "github",
         "owner": "Bhands6",
-        "repo": "BhandsMusicChange"
+        "repo": "StarlightMusicChange"
       }
     ]
   },
@@ -139,7 +139,7 @@
     "update": {
       "provider": "github",
       "owner": "Bhands6",
-      "repo": "BhandsMusicChange",
+      "repo": "StarlightMusicChange",
       "preview": true,
       "preferMirrors": true,
       "mirrors": [

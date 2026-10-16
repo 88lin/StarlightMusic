@@ -248,7 +248,7 @@ function ensureHotkeyModal() {
   modal.innerHTML =
     '<div class="hotkey-dialog" role="dialog" aria-modal="true" aria-label="热键设置">' +
       '<div class="hotkey-head">' +
-        '<div><div class="hotkey-title">热键设置</div><div class="hotkey-sub">局内热键只在 BhandsMusic 窗口内生效；全局热键会向系统注册，并检测是否被占用。</div></div>' +
+        '<div><div class="hotkey-title">热键设置</div><div class="hotkey-sub">局内热键只在 StarlightMusic 窗口内生效；全局热键会向系统注册，并检测是否被占用。</div></div>' +
         '<button class="hotkey-close" type="button" data-hotkey-close aria-label="关闭">×</button>' +
       '</div>' +
       '<div class="hotkey-toolbar">' +
@@ -273,7 +273,7 @@ function ensureHotkeyModal() {
 }
 function hotkeyStatusMarkup(scope, actionKey, binding, duplicate) {
   if (!binding) return '<span class="hotkey-status">未设置</span>';
-  if (duplicate && duplicate[binding] > 1) return '<span class="hotkey-status conflict"><span class="source-icon">!</span>BhandsMusic 内部重复</span>';
+  if (duplicate && duplicate[binding] > 1) return '<span class="hotkey-status conflict"><span class="source-icon">!</span>StarlightMusic 内部重复</span>';
   if (scope === 'local') return '<span class="hotkey-status ok">可用</span>';
   var status = hotkeyGlobalStatus[actionKey];
   if (!status) return '<span class="hotkey-status">待检测</span>';
@@ -988,7 +988,7 @@ function splashEaseOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
-function initBhandsMusicSplashWebgl(canvas) {
+function initStarlightMusicSplashWebgl(canvas) {
   var gl = null;
   try {
     gl = canvas.getContext('webgl', {
@@ -1160,7 +1160,7 @@ function initBhandsMusicSplashWebgl(canvas) {
   return true;
 }
 
-function drawBhandsMusicSplashWebgl(elapsed) {
+function drawStarlightMusicSplashWebgl(elapsed) {
   var gl = splashGl;
   if (!gl || !splashGlProgram || !splashGlUniforms) return;
   gl.viewport(0, 0, splashCanvas.width, splashCanvas.height);
@@ -1173,10 +1173,10 @@ function drawBhandsMusicSplashWebgl(elapsed) {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
-(function initBhandsMusicSplashCanvas() {
+(function initStarlightMusicSplashCanvas() {
   splashCanvas = document.getElementById('splash-canvas');
   if (!splashCanvas) return;
-  if (!reduceSplashMotion && initBhandsMusicSplashWebgl(splashCanvas)) {
+  if (!reduceSplashMotion && initStarlightMusicSplashWebgl(splashCanvas)) {
     splashCtx = null;
   } else {
     splashCtx = splashCanvas.getContext('2d');
@@ -1245,15 +1245,15 @@ function drawBhandsMusicSplashWebgl(elapsed) {
   }
   resize();
   window.addEventListener('resize', resize);
-  drawBhandsMusicSplash();
+  drawStarlightMusicSplash();
 })();
 
-function drawBhandsMusicSplash() {
+function drawStarlightMusicSplash() {
   if (!splashAnimating || (!splashCtx && !splashGl)) return;
-  requestAnimationFrame(drawBhandsMusicSplash);
+  requestAnimationFrame(drawStarlightMusicSplash);
   var elapsed = (performance.now() - splashStartedAt) / 1000;
   if (splashGl && splashGlProgram) {
-    drawBhandsMusicSplashWebgl(elapsed);
+    drawStarlightMusicSplashWebgl(elapsed);
     return;
   }
   splashCtx.clearRect(0, 0, splashW, splashH);
@@ -1409,7 +1409,7 @@ function drawBhandsMusicSplash() {
   splashCtx.restore();
 }
 
-function playBhandsMusicIntroSound() {
+function playStarlightMusicIntroSound() {
   if (splashSoundPlayed) return;
   try {
     var AudioContextCtor = window.AudioContext || window.webkitAudioContext;
@@ -1418,7 +1418,7 @@ function playBhandsMusicIntroSound() {
     splashAudioCtx = ctx;
     if (ctx.state === 'suspended' && ctx.resume) {
       ctx.resume().then(function(){
-        if (!splashSoundPlayed) playBhandsMusicIntroSound();
+        if (!splashSoundPlayed) playStarlightMusicIntroSound();
       }).catch(function(){});
       if (ctx.state === 'suspended') return;
     }
@@ -1491,7 +1491,7 @@ function armSplashSoundFallback() {
   if (splashSoundFallbackArmed) return;
   splashSoundFallbackArmed = true;
   function unlock() {
-    if (!splashSoundPlayed) playBhandsMusicIntroSound();
+    if (!splashSoundPlayed) playStarlightMusicIntroSound();
     document.removeEventListener('pointerdown', unlock, true);
     document.removeEventListener('keydown', unlock, true);
   }
@@ -1580,7 +1580,7 @@ function markSplashReadyToEnter() {
   s.classList.add('ready');
   s.setAttribute('role', 'button');
   s.setAttribute('tabindex', '0');
-  s.setAttribute('aria-label', '点击进入 BhandsMusic');
+  s.setAttribute('aria-label', '点击进入 StarlightMusic');
 }
 
 document.addEventListener('DOMContentLoaded', function(){
@@ -1596,7 +1596,7 @@ document.addEventListener('DOMContentLoaded', function(){
   armSplashSoundFallback();
   prewarmHomeWallpaperPreview();
   function requestSplashEnter() {
-    playBhandsMusicIntroSound();
+    playStarlightMusicIntroSound();
     if (splashReadyToEnter) dismissSplash();
   }
   s.addEventListener('click', requestSplashEnter);
@@ -1612,7 +1612,7 @@ document.addEventListener('DOMContentLoaded', function(){
     splashTimer = setTimeout(markSplashReadyToEnter, 900);
     return;
   }
-  playBhandsMusicIntroSound();
+  playStarlightMusicIntroSound();
   splashTimer = setTimeout(markSplashReadyToEnter, 5000);
 });
 
@@ -1630,7 +1630,7 @@ function currentDesktopSongMeta() {
   var song = playQueue && currentIdx >= 0 ? playQueue[currentIdx] : null;
   song = song || currentLyricSong && currentLyricSong() || {};
   return {
-    title: song.name || song.title || 'BhandsMusic',
+    title: song.name || song.title || 'StarlightMusic',
     artist: song.artist || song.ar || song.author || '',
     cover: (typeof songCoverSrc === 'function' && song) ? (songCoverSrc(song, 360) || song.cover || '') : (song.cover || '')
   };
@@ -1676,7 +1676,7 @@ function currentDesktopLyricSnapshot() {
       progressSpan: 4.8
     };
   }
-  return { text: normalizeDesktopLyricText(currentDesktopSongMeta().title || 'BhandsMusic'), progress: 0, progressSpan: 4.8 };
+  return { text: normalizeDesktopLyricText(currentDesktopSongMeta().title || 'StarlightMusic'), progress: 0, progressSpan: 4.8 };
 }
 function desktopOverlayColorValue(value, fallback) {
   var raw = String(value || '').trim();

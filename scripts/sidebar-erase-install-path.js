@@ -5,8 +5,8 @@
  *
  * 为什么需要：
  * `installerSidebar.bmp` 最初是从设计稿截图缩放来的，底部那两行
- * 「安装」和「D:\BhandsMusic」是**画在像素里**的。于是：
- *   - 用户在安装目录页改成C:\Bhands\BhandsMusic，左下角仍显示 D:\BhandsMusic；
+ * 「安装」和「D:\StarlightMusic」是**画在像素里**的。于是：
+ *   - 用户在安装目录页改成C:\Starlight\StarlightMusic，左下角仍显示 D:\StarlightMusic；
  *   - MUI 标准完成页、卸载器也共用这张图，同样显示这个写死路径。
  * 静态位图永远拿不到真实 $INSTDIR，只能从图上拿掉，改由
  * build/installer.nsh 里的 nsDialogs label 动态绘制。
@@ -28,7 +28,7 @@ const TARGET = path.join(REPO, 'build', 'installerSidebar.bmp');
  * 擦除区（位图 164x314 坐标系，左上角为原点）。
  * 实测内容块（阈值 sum(RGB) < 430）：
  *   「安装」          y=240..249  x=33..50
- *   「D:\BhandsMusic」 y=260..267  x=34..112
+ *   「D:\StarlightMusic」 y=260..267  x=34..112
  * 四周各留6~7px 余量吃掉抗锯齿边。
  */
 const ERASE = { x0: 26, y0: 234, x1: 125, y1: 272 };

@@ -36,7 +36,7 @@ function resolveRcedit(projectDir) {
   }
   candidates.push(path.join(projectDir, 'node_modules', 'electron-winstaller', 'vendor', 'rcedit.exe'));
   var hit = candidates.find(function(candidate) { return candidate && fs.existsSync(candidate); });
-  if (!hit) throw new Error('No usable rcedit executable was found for BhandsMusic icon injection.');
+  if (!hit) throw new Error('No usable rcedit executable was found for StarlightMusic icon injection.');
   return hit;
 }
 
@@ -151,9 +151,9 @@ async function runRceditWithRetry(rceditPath, args) {
  * 注意：ad-hoc 签名只解决"本机能否启动"，绕过 Gatekeeper 仍需用户右键打开。
  */
 function adHocSignMac(context) {
-  const appName = context.packager.appInfo.productFilename || 'BhandsMusic';
+  const appName = context.packager.appInfo.productFilename || 'StarlightMusic';
   const appPath = path.join(context.appOutDir, `${appName}.app`);
-  if (!fs.existsSync(appPath)) throw new Error(`BhandsMusic app bundle was not found: ${appPath}`);
+  if (!fs.existsSync(appPath)) throw new Error(`StarlightMusic app bundle was not found: ${appPath}`);
 
   console.log(`  • ad-hoc signing (no Developer ID certificate)  ${appPath}`);
   execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' });
@@ -199,22 +199,22 @@ module.exports = async function afterPack(context) {
   }
   if (context.electronPlatformName !== 'win32') return;
 
-  const appName = context.packager.appInfo.productFilename || 'BhandsMusic';
+  const appName = context.packager.appInfo.productFilename || 'StarlightMusic';
   const exePath = path.join(context.appOutDir, `${appName}.exe`);
   const iconPath = path.join(context.packager.info.buildResourcesDir, 'icon.ico');
   const rceditPath = resolveRcedit(context.packager.projectDir);
 
-  if (!fs.existsSync(exePath)) throw new Error(`BhandsMusic executable was not found: ${exePath}`);
-  if (!fs.existsSync(iconPath)) throw new Error(`BhandsMusic icon was not found: ${iconPath}`);
+  if (!fs.existsSync(exePath)) throw new Error(`StarlightMusic executable was not found: ${exePath}`);
+  if (!fs.existsSync(iconPath)) throw new Error(`StarlightMusic icon was not found: ${iconPath}`);
 
   const version = context.packager.appInfo.version;
-  console.log(`  • injecting BhandsMusic resources  rcedit=${rceditPath}`);
+  console.log(`  • injecting StarlightMusic resources  rcedit=${rceditPath}`);
   await runRceditWithRetry(rceditPath, [
     exePath,
     '--set-icon', iconPath,
-    '--set-version-string', 'FileDescription', 'BhandsMusic',
-    '--set-version-string', 'ProductName', 'BhandsMusic',
-    '--set-version-string', 'CompanyName', 'BhandsMusic',
+    '--set-version-string', 'FileDescription', 'StarlightMusic',
+    '--set-version-string', 'ProductName', 'StarlightMusic',
+    '--set-version-string', 'CompanyName', 'StarlightMusic',
     '--set-version-string', 'OriginalFilename', `${appName}.exe`,
     '--set-file-version', version,
     '--set-product-version', version

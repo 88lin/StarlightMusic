@@ -1,9 +1,9 @@
-# 音源解析逻辑对比：Bhands_Web（Web 版） vs BhandsMusicChange（桌面版）
+# 音源解析逻辑对比：Bhands_Web（Web 版） vs StarlightMusicChange（桌面版）
 
 生成时间：2026-09-20
 对比范围：
-- Web 版：`BhandsMusic_Web/Bhands_Web/apps/server/src/services/`（`musicParser.ts` / `music-sources/*` / `durationProbe.ts`）+ `routes/music.ts`
-- 桌面版：`BhandsMusic/BhandsMusicChange/server/music-sources/*`（`musicParser.js` / `gdmusic.js` / `kugou.js` / `unblockMusic.js` / `lxMusicRunner.js` / `goMusicSwitch.js` / `durationProbe.js`）+ `server/server.js` + `public/js/main.js`
+- Web 版：`StarlightMusic_Web/Bhands_Web/apps/server/src/services/`（`musicParser.ts` / `music-sources/*` / `durationProbe.ts`）+ `routes/music.ts`
+- 桌面版：`StarlightMusic/StarlightMusicChange/server/music-sources/*`（`musicParser.js` / `gdmusic.js` / `kugou.js` / `unblockMusic.js` / `lxMusicRunner.js` / `goMusicSwitch.js` / `durationProbe.js`）+ `server/server.js` + `public/js/main.js`
   - 注：`customApi.js` 与 `custom` 策略已于 2026-09-23 整体移除（配置项 `customApiUrl` / `customApiMethod` 一并下线）。
   - ⚠️ 文中 `main.js:xxxx` 的行号对应**拆分前的基线 `784afe6`**。`public/js/main.js` 已于 2026-09-24
     先按 48 个分区拆成 `public/js/app/01…16`、再按职责重排成 `00-prelude.js` + `01…18`（共 19 个），行号不再有效 —— 按函数名 grep 更快。

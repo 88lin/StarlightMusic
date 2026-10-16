@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BhandsMusic Desktop Lyrics</title>
+  <title>StarlightMusic Desktop Lyrics</title>
   <style>
     /* ==================== CSS 变量定义 ==================== */
     /* 定义歌词样式相关的 CSS 自定义属性 */
@@ -223,7 +223,7 @@
       <!-- 歌词视口 - 承载滚动歌词文本 -->
       <div id="lyricViewport" class="lyric-viewport">
         <div id="lyricScroller" class="lyric-scroll">
-          <div id="line" class="line" data-text="BhandsMusic">BhandsMusic</div>
+          <div id="line" class="line" data-text="StarlightMusic">StarlightMusic</div>
         </div>
       </div>
       <!-- 锁定提示 - 显示锁定/解锁状态和关闭按钮 -->
@@ -295,7 +295,7 @@
     /* ==================== 应用主状态 ==================== */
     var state = {
       enabled:false,           // 是否启用歌词显示
-      text:'BhandsMusic',        // 当前歌词文本
+      text:'StarlightMusic',        // 当前歌词文本
       progress:0,              // 播放进度 (0-1)
       progressSpan:4.8,        // 进度更新间隔（秒）
       progressReceivedAt:0,    // 进度接收时间戳
@@ -900,7 +900,7 @@
     function measureLineWidth(fontSize) {
       ctx.save();
       ctx.font = state.fontWeight + ' ' + fontSize + 'px ' + state.fontFamily;
-      var text = line.textContent || 'BhandsMusic';
+      var text = line.textContent || 'StarlightMusic';
       var width = ctx.measureText(text).width;
       ctx.restore();
       /* 加上字间距 */
@@ -1150,7 +1150,7 @@
       if (motion.bass != null) state.bass = motion.bass;
 
       /* 处理歌词文本 */
-      var text = String(state.text || 'BhandsMusic').replace(/\s+/g, ' ').trim() || 'BhandsMusic';
+      var text = String(state.text || 'StarlightMusic').replace(/\s+/g, ' ').trim() || 'StarlightMusic';
 
       /* 钳制数值参数 */
       baseFontSize = Math.round(58 * clamp(state.size, .72, 1.55, 1));
@@ -1467,7 +1467,7 @@
       live.glow += (target - live.glow) * (target > live.glow ? .11 : .06);
       if (live.glow <= .004) return;
 
-      var text = line.textContent || 'BhandsMusic';
+      var text = line.textContent || 'StarlightMusic';
       var cx = rect.left + rect.width / 2;
       var cy = rect.top + rect.height / 2;
       var spacing = renderedFontSize * state.letterSpacing;

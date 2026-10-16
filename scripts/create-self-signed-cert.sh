@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 在登录钥匙串里创建一张自签名代码签名证书，供本机给 BhandsMusic 的 .app 签名。
+# 在登录钥匙串里创建一张自签名代码签名证书，供本机给 StarlightMusic 的 .app 签名。
 #
 # 为什么需要：
 #   macOS 上 ad-hoc 签名（codesign --sign -）每次构建的签名标识都不稳定，系统会把每个
@@ -24,7 +24,7 @@
 
 set -euo pipefail
 
-CERT_NAME="BhandsMusic Self-Signed"
+CERT_NAME="StarlightMusic Self-Signed"
 DAYS=3650
 EXPORT_ONLY=""
 

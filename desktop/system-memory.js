@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * BhandsMusic 系统内存管家（移植自上游 Mineradio v2.2.0 的 desktop/system-memory.js）
+ * StarlightMusic 系统内存管家（移植自上游 Mineradio v2.2.0 的 desktop/system-memory.js）
  *
  * - appTrim：通过 psapi EmptyWorkingSet 压缩本应用各进程工作集（无需管理员）
  * - 系统级释放：通过 ntdll NtSetSystemInformation 清理工作集 / 修改页 / 待机页
@@ -57,7 +57,7 @@ const NATIVE_TYPE_BLOCK = [
   '  public IntPtr CurrentSizeIncludingTransitionInPages; public IntPtr PeakSizeIncludingTransitionInPages;',
   '  public uint TransitionRePurposeCount; public uint Flags;',
   '}',
-  'public static class BhandsMusicMemNative {',
+  'public static class StarlightMusicMemNative {',
   '  const int SystemMemoryListInformation = 0x50;',
   '  const int SystemFileCacheInformationEx = 0x51;',
   '  const uint SE_PRIVILEGE_ENABLED = 2;',
@@ -139,7 +139,7 @@ function defaultNativeTempPath() {
   const configured = String(process.env.BHANDSMUSIC_NATIVE_TEMP_DIR || '').trim();
   if (configured) return path.resolve(configured);
   const localRoot = String(process.env.LOCALAPPDATA || process.env.APPDATA || os.tmpdir()).trim();
-  return path.join(localRoot, 'BhandsMusic', 'native-helper-temp');
+  return path.join(localRoot, 'StarlightMusic', 'native-helper-temp');
 }
 
 function setNativeTempPath(value) {
@@ -243,29 +243,29 @@ function buildPurgeScript(mask, resultPath) {
   const m = normalizeMask(mask);
   const lines = [
     NATIVE_TYPE_BLOCK,
-    '[BhandsMusicMemNative]::PreparePrivileges() | Out-Null',
+    '[StarlightMusicMemNative]::PreparePrivileges() | Out-Null',
     '$mask = ' + m,
-    '$before = [BhandsMusicMemNative]::GetUsedPhys()',
-    '$loadBefore = [BhandsMusicMemNative]::GetMemoryLoad()',
+    '$before = [StarlightMusicMemNative]::GetUsedPhys()',
+    '$loadBefore = [StarlightMusicMemNative]::GetMemoryLoad()',
     '$steps = @()',
   ];
 
   if ((m & MEMORY_MASK.workingSet) !== 0) {
-    lines.push('$steps += @{ id="workingSet"; status=[BhandsMusicMemNative]::PurgeList(' + MEMORY_CMD.emptyWorkingSets + ') }');
-    lines.push('$steps += @{ id="systemFileCache"; status=[BhandsMusicMemNative]::FlushSystemFileCache() }');
+    lines.push('$steps += @{ id="workingSet"; status=[StarlightMusicMemNative]::PurgeList(' + MEMORY_CMD.emptyWorkingSets + ') }');
+    lines.push('$steps += @{ id="systemFileCache"; status=[StarlightMusicMemNative]::FlushSystemFileCache() }');
   }
   if ((m & MEMORY_MASK.modifiedList) !== 0) {
-    lines.push('$steps += @{ id="modifiedList"; status=[BhandsMusicMemNative]::PurgeList(' + MEMORY_CMD.flushModifiedList + ') }');
+    lines.push('$steps += @{ id="modifiedList"; status=[StarlightMusicMemNative]::PurgeList(' + MEMORY_CMD.flushModifiedList + ') }');
   }
   if ((m & MEMORY_MASK.standbyList) !== 0) {
-    lines.push('$steps += @{ id="standbyList"; status=[BhandsMusicMemNative]::PurgeList(' + MEMORY_CMD.purgeStandbyList + ') }');
+    lines.push('$steps += @{ id="standbyList"; status=[StarlightMusicMemNative]::PurgeList(' + MEMORY_CMD.purgeStandbyList + ') }');
   }
   if ((m & MEMORY_MASK.standbyLow) !== 0) {
-    lines.push('$steps += @{ id="standbyLow"; status=[BhandsMusicMemNative]::PurgeList(' + MEMORY_CMD.purgeStandbyLow + ') }');
+    lines.push('$steps += @{ id="standbyLow"; status=[StarlightMusicMemNative]::PurgeList(' + MEMORY_CMD.purgeStandbyLow + ') }');
   }
 
-  lines.push('$after = [BhandsMusicMemNative]::GetUsedPhys()');
-  lines.push('$loadAfter = [BhandsMusicMemNative]::GetMemoryLoad()');
+  lines.push('$after = [StarlightMusicMemNative]::GetUsedPhys()');
+  lines.push('$loadAfter = [StarlightMusicMemNative]::GetMemoryLoad()');
   lines.push('$obj = @{ ok=$true; beforeBytes=$before; afterBytes=$after; freedBytes=($before-$after); loadBefore=$loadBefore; loadAfter=$loadAfter; steps=$steps }');
   lines.push('$json = $obj | ConvertTo-Json -Compress -Depth 5');
   if (resultPath) {
@@ -329,7 +329,7 @@ function probeProcessElevation() {
   if (!isWin) return Promise.resolve(false);
   const scriptPath = writeTempScript('elev-check', [
     NATIVE_TYPE_BLOCK,
-    'Write-Output ([BhandsMusicMemNative]::IsTokenElevated() | ConvertTo-Json -Compress)',
+    'Write-Output ([StarlightMusicMemNative]::IsTokenElevated() | ConvertTo-Json -Compress)',
   ]);
   return runPowerShellFile(scriptPath, 10000).then((value) => {
     if (typeof value !== 'boolean') throw new Error('PROCESS_ELEVATION_PROBE_INVALID');
@@ -374,7 +374,7 @@ function purgeSystemMemoryElevated(mask, options) {
       ok: false,
       disabled: true,
       needAdmin: false,
-      message: 'Elevated memory purge is disabled by default; BhandsMusic will not open administrator PowerShell windows.',
+      message: 'Elevated memory purge is disabled by default; StarlightMusic will not open administrator PowerShell windows.',
     });
   }
   if (!isWin) {
@@ -422,9 +422,9 @@ function queryExtendedMemoryStats() {
   if (extendedCache.data && now - extendedCache.at < 8000) return Promise.resolve(extendedCache.data);
   const scriptPath = writeTempScript('mem-stats', [
     NATIVE_TYPE_BLOCK,
-    '$total = [BhandsMusicMemNative]::GetTotalPhys()',
-    '$avail = [BhandsMusicMemNative]::GetAvailPhys()',
-    '$load = [BhandsMusicMemNative]::GetMemoryLoad()',
+    '$total = [StarlightMusicMemNative]::GetTotalPhys()',
+    '$avail = [StarlightMusicMemNative]::GetAvailPhys()',
+    '$load = [StarlightMusicMemNative]::GetMemoryLoad()',
     '$used = if ($total -gt $avail) { $total - $avail } else { 0 }',
     '@{ totalBytes=$total; freeBytes=$avail; usedBytes=$used; loadPercent=$load } | ConvertTo-Json -Compress',
   ]);
@@ -466,7 +466,7 @@ function trimAppWorkingSets(pids) {
   const scriptPath = writeTempScript('mem-trim', [
     'Add-Type @\'',
     'using System; using System.Runtime.InteropServices;',
-    'public static class BhandsMusicTrim {',
+    'public static class StarlightMusicTrim {',
     '  [DllImport("psapi.dll")] public static extern bool EmptyWorkingSet(IntPtr h);',
     '  [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(int a, bool i, int pid);',
     '  [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);',
@@ -479,7 +479,7 @@ function trimAppWorkingSets(pids) {
     '}',
     '\'@',
     '$pids = @(' + pidLiteral + ')',
-    '$trimmed = [BhandsMusicTrim]::TrimMany([int[]]$pids)',
+    '$trimmed = [StarlightMusicTrim]::TrimMany([int[]]$pids)',
     'Write-Output (@{ ok=$true; trimmed=$trimmed; scope="app"; pids=$pids } | ConvertTo-Json -Compress)',
   ]);
   return runPowerShellFile(scriptPath, 20000)

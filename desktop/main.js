@@ -1,5 +1,5 @@
 /**
- * BhandsMusic 桌面播放器 - Electron 主进程
+ * StarlightMusic 桌面播放器 - Electron 主进程
  * 负责窗口管理、桌面歌词、壁纸模式、音乐平台登录、全局热键等功能
  */
 
@@ -76,7 +76,7 @@ const MIN_WINDOWED_WIDTH = 960;       // 窗口最小宽度
 const MIN_WINDOWED_HEIGHT = 540;      // 窗口最小高度
 
 // ==================== 应用信息常量 ====================
-const APP_NAME = 'BhandsMusic';                                   // 应用名称
+const APP_NAME = 'StarlightMusic';                                   // 应用名称
 const APP_USER_MODEL_ID = 'com.bhandsmusic.desktop';              // Windows 任务栏分组标识
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico'); // 应用图标路径（Windows）
 /**
@@ -343,7 +343,7 @@ function waitForServer(server) {
  * Windows 允许 127.0.0.1 同端口被多个进程绑定，且**每条连接的路由相互独立**：
  * 残留实例（如 Mineradio.exe 的半死 server）先占 3000 时，本 server 绑定"成功"
  * 后，部分请求仍会被路由进对方的黑洞（连接被 RST/挂起）。因此发 6 次身份请求，
- * 要求全部由本 server 应答（带 X-BhandsMusic-Server 头），任一次失败即换口。
+ * 要求全部由本 server 应答（带 X-StarlightMusic-Server 头），任一次失败即换口。
  * 全部路由到对方的逃逸概率约 1.6%（六连全中），实际足以规避。
  * @param {number} port - 待验证端口
  * @returns {Promise<boolean>} true = 六连验证全部通过
@@ -382,7 +382,7 @@ function verifyServerIdentity(port) {
           // 注意：不要中途 res.destroy() 截断——destroy 后 end/error 都不触发会让
           // Promise 永远挂起；首页 ~70KB 全量读完耗时极短，直接读到 end 即可。
           res.on('data', (c) => { buf += c; });
-          res.on('end', () => done(res.statusCode === 200 && buf.indexOf('BhandsMusic') !== -1));
+          res.on('end', () => done(res.statusCode === 200 && buf.indexOf('StarlightMusic') !== -1));
           res.on('error', () => done(false));
         });
         req.on('error', () => done(false));
@@ -423,7 +423,7 @@ function sendGlobalHotkeyAction(action) {
 // ==================== 全局快捷键管理 ====================
 
 /** 注销所有已注册的全局快捷键 */
-function unregisterBhandsMusicGlobalHotkeys() {
+function unregisterStarlightMusicGlobalHotkeys() {
   for (const accelerator of registeredGlobalHotkeys.keys()) {
     try { globalShortcut.unregister(accelerator); } catch (e) {}
   }
@@ -435,8 +435,8 @@ function unregisterBhandsMusicGlobalHotkeys() {
  * @param {Array<{action: string, accelerator: string}>} bindings - 快捷键绑定列表
  * @returns {{ok: boolean, results: Array}} 注册结果，包含每个快捷键的成功/失败状态及冲突信息
  */
-function configureBhandsMusicGlobalHotkeys(bindings = []) {
-  unregisterBhandsMusicGlobalHotkeys(); // 先清除旧的绑定
+function configureStarlightMusicGlobalHotkeys(bindings = []) {
+  unregisterStarlightMusicGlobalHotkeys(); // 先清除旧的绑定
   const results = [];
   const seen = new Set(); // 去重，防止同一快捷键注册多次
   for (const item of Array.isArray(bindings) ? bindings : []) {
@@ -1309,13 +1309,13 @@ $ErrorActionPreference = "SilentlyContinue"
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
-public class BhandsMusicMousePoll {
+public class StarlightMusicMousePoll {
   [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
 }
 "@
 $prev = $false
 while ($true) {
-  $down = (([BhandsMusicMousePoll]::GetAsyncKeyState(4) -band 0x8000) -ne 0)
+  $down = (([StarlightMusicMousePoll]::GetAsyncKeyState(4) -band 0x8000) -ne 0)
   if ($down -and -not $prev) {
     [Console]::Out.WriteLine("MMB")
     [Console]::Out.Flush()
@@ -1453,7 +1453,7 @@ function createDesktopLyricsWindow(payload = {}) {
     focusable: false,          // 不抢焦点
     skipTaskbar: true,         // 不在任务栏显示
     show: false,               // 初始隐藏，等 ready 后再显示
-    title: 'BhandsMusic Desktop Lyrics',
+    title: 'StarlightMusic Desktop Lyrics',
     webPreferences: {
       preload: path.join(__dirname, 'overlay-preload.js'),
       contextIsolation: true,
@@ -1534,11 +1534,11 @@ function attachWallpaperToWorkerW(win) {
   const hwnd = nativeWindowHandleDecimal(win);
   const script = `
 $ErrorActionPreference = "Stop"
-if (-not ("BhandsMusicNativeWin" -as [type])) {
+if (-not ("StarlightMusicNativeWin" -as [type])) {
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
-public class BhandsMusicNativeWin {
+public class StarlightMusicNativeWin {
   public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
   [DllImport("user32.dll", SetLastError=true)] public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
   [DllImport("user32.dll", SetLastError=true)] public static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string className, string windowName);
@@ -1549,23 +1549,23 @@ public class BhandsMusicNativeWin {
 }
 "@
 }
-$progman = [BhandsMusicNativeWin]::FindWindow("Progman", $null)
+$progman = [StarlightMusicNativeWin]::FindWindow("Progman", $null)
 $result = [IntPtr]::Zero
-[BhandsMusicNativeWin]::SendMessageTimeout($progman, 0x052C, [IntPtr]::Zero, [IntPtr]::Zero, 0, 1000, [ref]$result) | Out-Null
+[StarlightMusicNativeWin]::SendMessageTimeout($progman, 0x052C, [IntPtr]::Zero, [IntPtr]::Zero, 0, 1000, [ref]$result) | Out-Null
 $script:workerw = [IntPtr]::Zero
-$enum = [BhandsMusicNativeWin+EnumWindowsProc]{
+$enum = [StarlightMusicNativeWin+EnumWindowsProc]{
   param([IntPtr]$top, [IntPtr]$param)
-  $shell = [BhandsMusicNativeWin]::FindWindowEx($top, [IntPtr]::Zero, "SHELLDLL_DefView", $null)
+  $shell = [StarlightMusicNativeWin]::FindWindowEx($top, [IntPtr]::Zero, "SHELLDLL_DefView", $null)
   if ($shell -ne [IntPtr]::Zero) {
-    $script:workerw = [BhandsMusicNativeWin]::FindWindowEx([IntPtr]::Zero, $top, "WorkerW", $null)
+    $script:workerw = [StarlightMusicNativeWin]::FindWindowEx([IntPtr]::Zero, $top, "WorkerW", $null)
   }
   return $true
 }
-[BhandsMusicNativeWin]::EnumWindows($enum, [IntPtr]::Zero) | Out-Null
+[StarlightMusicNativeWin]::EnumWindows($enum, [IntPtr]::Zero) | Out-Null
 if ($script:workerw -eq [IntPtr]::Zero) { $script:workerw = $progman }
 $target = [IntPtr]::new([Int64]${hwnd})
-[BhandsMusicNativeWin]::SetParent($target, $script:workerw) | Out-Null
-[BhandsMusicNativeWin]::SetWindowPos($target, [IntPtr]::Zero, 0, 0, 0, 0, 0x0013) | Out-Null
+[StarlightMusicNativeWin]::SetParent($target, $script:workerw) | Out-Null
+[StarlightMusicNativeWin]::SetWindowPos($target, [IntPtr]::Zero, 0, 0, 0, 0, 0x0013) | Out-Null
 `;
   execFile('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], {
     windowsHide: true,
@@ -1616,7 +1616,7 @@ function createWallpaperWindow(payload = {}) {
     focusable: false,
     skipTaskbar: true,
     show: false,
-    title: 'BhandsMusic Wallpaper',
+    title: 'StarlightMusic Wallpaper',
     webPreferences: {
       preload: path.join(__dirname, 'overlay-preload.js'),
       contextIsolation: true,
@@ -1690,7 +1690,7 @@ async function walkDirSize(dirPath, depth = 0) {
 }
 
 ipcMain.handle('bhandsmusic-cache-get-info', async () => {
-  const beatmapsDir = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\BhandsMusicCache\\beatmaps';
+  const beatmapsDir = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
   const cacheRoot = path.dirname(beatmapsDir);
   const userDataPath = app.getPath('userData');
   const networkCachePath = path.join(userDataPath, 'Cache');
@@ -1709,7 +1709,7 @@ ipcMain.handle('bhandsmusic-cache-get-info', async () => {
 
 ipcMain.handle('bhandsmusic-cache-open-path', async (_event, targetPath) => {
   // 安全校验：只允许打开缓存面板返回过的目录（节拍缓存根 / userData）
-  const beatmapsDir = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\BhandsMusicCache\\beatmaps';
+  const beatmapsDir = process.env.BHANDSMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
   const allowed = [path.dirname(beatmapsDir), app.getPath('userData')];
   const p = String(targetPath || '');
   if (!allowed.some((root) => p === root || p.startsWith(root + path.sep))) {
@@ -1760,7 +1760,7 @@ ipcMain.handle('desktop-window-close', (event) => {
 
 /** 配置全局快捷键绑定 */
 ipcMain.handle('bhandsmusic-hotkeys-configure-global', (_event, bindings) => {
-  return configureBhandsMusicGlobalHotkeys(bindings);
+  return configureStarlightMusicGlobalHotkeys(bindings);
 });
 
 // ==================== IPC 处理器：数据导入导出 ====================
@@ -1774,7 +1774,7 @@ ipcMain.handle('bhandsmusic-export-json-file', async (event, payload = {}) => {
     const owner = getSenderWindow(event);
     const defaultName = String(payload.defaultName || 'bhandsmusic-export.json').replace(/[\\/:*?"<>|]+/g, '-');
     const result = await dialog.showSaveDialog(owner, {
-      title: '导出 BhandsMusic 存档',
+      title: '导出 StarlightMusic 存档',
       defaultPath: defaultName.toLowerCase().endsWith('.json') ? defaultName : `${defaultName}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
     });
@@ -1795,7 +1795,7 @@ ipcMain.handle('bhandsmusic-import-json-file', async (event) => {
   try {
     const owner = getSenderWindow(event);
     const result = await dialog.showOpenDialog(owner, {
-      title: '导入 BhandsMusic 存档',
+      title: '导入 StarlightMusic 存档',
       properties: ['openFile'],
       filters: [{ name: 'JSON', extensions: ['json'] }],
     });
@@ -1849,7 +1849,7 @@ ipcMain.handle('bhandsmusic-open-update-installer', async (_event, filePath) => 
     const error = await shell.openPath(target);
     if (error) return { ok: false, error };
     // macOS：打开 dmg 只是把它挂载出来，应用并不会被替换（macOS 也不允许替换正在运行的 app）。
-    // 顺手把「应用程序」文件夹也打开，用户直接把 BhandsMusic 拖进去即可完成替换。
+    // 顺手把「应用程序」文件夹也打开，用户直接把 StarlightMusic 拖进去即可完成替换。
     let revealedApplications = false;
     if (process.platform === 'darwin' && /\.dmg$/i.test(target)) {
       revealedApplications = !(await shell.openPath('/Applications'));
@@ -2189,7 +2189,7 @@ ipcMain.handle('bhandsmusic-memory-purge-system', async (_event, payload = {}) =
     if (isMainWindowForegroundVisible()) {
       return {
         ok: true,
-        result: { ok: false, skipped: true, reason: 'foreground-visible', message: 'System memory purge is skipped while BhandsMusic is visible.' },
+        result: { ok: false, skipped: true, reason: 'foreground-visible', message: 'System memory purge is skipped while StarlightMusic is visible.' },
         snapshot: systemMemory.getMemorySnapshot(),
         elevated: false,
         systemPurgeAvailable: systemMemory.SYSTEM_PURGE_AVAILABLE === true,
@@ -2779,7 +2779,7 @@ if (!gotSingleInstanceLock) {
 
   // 退出前清理资源
   app.on('before-quit', () => {
-    unregisterBhandsMusicGlobalHotkeys(); // 注销全局快捷键
+    unregisterStarlightMusicGlobalHotkeys(); // 注销全局快捷键
     stopMemoryAutoTimer();              // 停止内存管家定时器
     closeOverlayWindows();              // 关闭覆盖层窗口
     if (appTray) { appTray.destroy(); appTray = null; } // 销毁托盘图标

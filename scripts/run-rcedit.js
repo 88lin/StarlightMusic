@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * 单独给 dist\win-unpacked\BhandsMusic.exe 注入图标与版本信息。
+ * 单独给 dist\win-unpacked\StarlightMusic.exe 注入图标与版本信息。
  * 由 scripts/build-defer-rcedit.js 在 electron-builder 打包完成后调用。
  *
  * 与 build/after-pack.js 的区别：那个在「刚解压完」时跑，会撞上杀软扫描；
@@ -15,7 +15,7 @@ const REPO = path.resolve(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
 
 const appDir = path.join(REPO, 'dist', 'win-unpacked');
-const exePath = path.join(appDir, 'BhandsMusic.exe');
+const exePath = path.join(appDir, 'StarlightMusic.exe');
 const iconPath = path.join(REPO, 'build', 'icon.ico');
 const rcedit = path.join(REPO, 'node_modules', 'rcedit', 'bin', 'rcedit-x64.exe');
 
@@ -34,7 +34,7 @@ execFileSync(
     '--set-version-string', 'FileDescription', pkg.productName,
     '--set-version-string', 'ProductName', pkg.productName,
     '--set-version-string', 'CompanyName', pkg.productName,
-    '--set-version-string', 'OriginalFilename', 'BhandsMusic.exe',
+    '--set-version-string', 'OriginalFilename', 'StarlightMusic.exe',
     '--set-file-version', version,
     '--set-product-version', version
   ],

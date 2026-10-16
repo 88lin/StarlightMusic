@@ -60,7 +60,7 @@ function buildFor(platform, arch) {
     }
     function normalizeDigest(v){ return String(v || ''); }
     function githubReleaseDownloadUrl(ver, name){
-      return 'https://github.com/o/r/releases/download/BhandsMusic-V' + ver + '/' + name;
+      return 'https://github.com/o/r/releases/download/StarlightMusic-V' + ver + '/' + name;
     }
     ${FUNCTION_SOURCE}
     return {
@@ -73,24 +73,24 @@ function buildFor(platform, arch) {
 
 /** Release 上真实存在的资产形态：两个 mac dmg + Windows exe + 附属产物 */
 const RELEASE_ASSETS = [
-  { name: 'BhandsMusic-2.3.0-Setup.exe', size: 180000000, browser_download_url: 'https://github.com/o/r/releases/download/BhandsMusic-V2.3.0/BhandsMusic-2.3.0-Setup.exe' },
-  { name: 'BhandsMusic-2.3.0-Setup.exe.blockmap', size: 190000, browser_download_url: 'https://x/BhandsMusic-2.3.0-Setup.exe.blockmap' },
-  { name: 'BhandsMusic-2.3.0-mac-arm64.dmg', size: 177000000, browser_download_url: 'https://github.com/o/r/releases/download/BhandsMusic-V2.3.0/BhandsMusic-2.3.0-mac-arm64.dmg' },
-  { name: 'BhandsMusic-2.3.0-mac-x64.dmg', size: 178000000, browser_download_url: 'https://github.com/o/r/releases/download/BhandsMusic-V2.3.0/BhandsMusic-2.3.0-mac-x64.dmg' },
+  { name: 'StarlightMusic-2.3.0-Setup.exe', size: 180000000, browser_download_url: 'https://github.com/o/r/releases/download/StarlightMusic-V2.3.0/StarlightMusic-2.3.0-Setup.exe' },
+  { name: 'StarlightMusic-2.3.0-Setup.exe.blockmap', size: 190000, browser_download_url: 'https://x/StarlightMusic-2.3.0-Setup.exe.blockmap' },
+  { name: 'StarlightMusic-2.3.0-mac-arm64.dmg', size: 177000000, browser_download_url: 'https://github.com/o/r/releases/download/StarlightMusic-V2.3.0/StarlightMusic-2.3.0-mac-arm64.dmg' },
+  { name: 'StarlightMusic-2.3.0-mac-x64.dmg', size: 178000000, browser_download_url: 'https://github.com/o/r/releases/download/StarlightMusic-V2.3.0/StarlightMusic-2.3.0-mac-x64.dmg' },
   { name: 'latest-mac.yml', size: 400, browser_download_url: 'https://x/latest-mac.yml' },
-  { name: 'BhandsMusic-2.2.0→2.3.0.patch.json', size: 900000, browser_download_url: 'https://x/BhandsMusic-2.2.0.2.3.0.patch.json' },
+  { name: 'StarlightMusic-2.2.0→2.3.0.patch.json', size: 900000, browser_download_url: 'https://x/StarlightMusic-2.2.0.2.3.0.patch.json' },
 ];
 
 const MULTI_ARCH_MAC_YML = [
   'version: 2.3.0',
   'files:',
-  '  - url: BhandsMusic-2.3.0-mac-x64.dmg',
+  '  - url: StarlightMusic-2.3.0-mac-x64.dmg',
   '    sha512: X64HASH',
   '    size: 111',
-  '  - url: BhandsMusic-2.3.0-mac-arm64.dmg',
+  '  - url: StarlightMusic-2.3.0-mac-arm64.dmg',
   '    sha512: ARMHASH',
   '    size: 222',
-  'path: BhandsMusic-2.3.0-mac-x64.dmg',
+  'path: StarlightMusic-2.3.0-mac-x64.dmg',
   'sha512: X64HASH',
   'releaseDate: 2026-10-16T00:00:00.000Z',
 ].join('\n');
@@ -98,10 +98,10 @@ const MULTI_ARCH_MAC_YML = [
 const WINDOWS_YML = [
   'version: 2.3.0',
   'files:',
-  '  - url: BhandsMusic-2.3.0-Setup.exe',
+  '  - url: StarlightMusic-2.3.0-Setup.exe',
   '    sha512: WINHASH',
   '    size: 333',
-  'path: BhandsMusic-2.3.0-Setup.exe',
+  'path: StarlightMusic-2.3.0-Setup.exe',
   'sha512: WINHASH',
   'releaseDate: 2026-10-16T00:00:00.000Z',
 ].join('\n');
@@ -111,9 +111,9 @@ const macX64 = buildFor('darwin', 'x64');
 const winX64 = buildFor('win32', 'x64');
 
 test('选资产：mac 拿 dmg（按架构），win 拿 exe，不会误选附属产物', () => {
-  assert.equal(macArm.pickReleaseAsset(RELEASE_ASSETS).name, 'BhandsMusic-2.3.0-mac-arm64.dmg');
-  assert.equal(macX64.pickReleaseAsset(RELEASE_ASSETS).name, 'BhandsMusic-2.3.0-mac-x64.dmg');
-  assert.equal(winX64.pickReleaseAsset(RELEASE_ASSETS).name, 'BhandsMusic-2.3.0-Setup.exe');
+  assert.equal(macArm.pickReleaseAsset(RELEASE_ASSETS).name, 'StarlightMusic-2.3.0-mac-arm64.dmg');
+  assert.equal(macX64.pickReleaseAsset(RELEASE_ASSETS).name, 'StarlightMusic-2.3.0-mac-x64.dmg');
+  assert.equal(winX64.pickReleaseAsset(RELEASE_ASSETS).name, 'StarlightMusic-2.3.0-Setup.exe');
   // 关键回归：mac 绝不能下到 Windows 安装包
   assert.ok(!/\.exe$/i.test(macArm.pickReleaseAsset(RELEASE_ASSETS).name), 'mac 选到了 exe');
   // 附属产物（blockmap / 清单 / patch）不能被当成安装包
@@ -124,9 +124,9 @@ test('选资产：mac 拿 dmg（按架构），win 拿 exe，不会误选附属�
 });
 
 test('兜底安装包文件名按平台给扩展名', () => {
-  assert.equal(macArm.defaultInstallerName('2.3.0'), 'BhandsMusic-2.3.0-mac-arm64.dmg');
-  assert.equal(macX64.defaultInstallerName('2.3.0'), 'BhandsMusic-2.3.0-mac-x64.dmg');
-  assert.equal(winX64.defaultInstallerName('2.3.0'), 'BhandsMusic-2.3.0-Setup.exe');
+  assert.equal(macArm.defaultInstallerName('2.3.0'), 'StarlightMusic-2.3.0-mac-arm64.dmg');
+  assert.equal(macX64.defaultInstallerName('2.3.0'), 'StarlightMusic-2.3.0-mac-x64.dmg');
+  assert.equal(winX64.defaultInstallerName('2.3.0'), 'StarlightMusic-2.3.0-Setup.exe');
 });
 
 test('解析真实产物 dist/latest-mac.yml：选中条目、取该条目自己的 sha512/size', () => {
@@ -136,7 +136,7 @@ test('解析真实产物 dist/latest-mac.yml：选中条目、取该条目自己
   // ⚠️ 版本号从清单里现取，不硬编码 —— 否则每次发版重新打包后这个测试都会误报失败
   const manifestVersion = (yml.match(/^version:\s*(.+?)\s*$/m) || [])[1];
   assert.ok(manifestVersion, 'latest-mac.yml 里没解析到 version');
-  const expectedName = 'BhandsMusic-' + manifestVersion + '-mac-arm64.dmg';
+  const expectedName = 'StarlightMusic-' + manifestVersion + '-mac-arm64.dmg';
   assert.equal(macArm.parseYmlFileEntries(yml).length, 1);
   assert.equal(macArm.pickYmlInstallerEntry(yml).url, expectedName);
   const info = macArm.parseLatestYmlUpdateInfo(yml, '');
@@ -149,23 +149,23 @@ test('解析真实产物 dist/latest-mac.yml：选中条目、取该条目自己
 });
 
 test('多架构 latest-mac.yml：按本机架构选条目，且不被顶层 sha512 污染', () => {
-  assert.equal(macArm.pickYmlInstallerEntry(MULTI_ARCH_MAC_YML).url, 'BhandsMusic-2.3.0-mac-arm64.dmg');
-  assert.equal(macX64.pickYmlInstallerEntry(MULTI_ARCH_MAC_YML).url, 'BhandsMusic-2.3.0-mac-x64.dmg');
+  assert.equal(macArm.pickYmlInstallerEntry(MULTI_ARCH_MAC_YML).url, 'StarlightMusic-2.3.0-mac-arm64.dmg');
+  assert.equal(macX64.pickYmlInstallerEntry(MULTI_ARCH_MAC_YML).url, 'StarlightMusic-2.3.0-mac-x64.dmg');
 
   const arm = macArm.parseLatestYmlUpdateInfo(MULTI_ARCH_MAC_YML, '');
-  assert.equal(arm.release.asset.name, 'BhandsMusic-2.3.0-mac-arm64.dmg');
+  assert.equal(arm.release.asset.name, 'StarlightMusic-2.3.0-mac-arm64.dmg');
   assert.equal(arm.release.asset.sha512, 'ARMHASH', '顶层 sha512 覆盖了条目自己的 sha512');
   assert.equal(arm.release.asset.size, 222);
 
   const x64 = macX64.parseLatestYmlUpdateInfo(MULTI_ARCH_MAC_YML, '');
-  assert.equal(x64.release.asset.name, 'BhandsMusic-2.3.0-mac-x64.dmg');
+  assert.equal(x64.release.asset.name, 'StarlightMusic-2.3.0-mac-x64.dmg');
   assert.equal(x64.release.asset.sha512, 'X64HASH');
   assert.equal(x64.release.asset.size, 111);
 });
 
 test('Windows latest.yml 不回归', () => {
   const info = winX64.parseLatestYmlUpdateInfo(WINDOWS_YML, '');
-  assert.equal(info.release.asset.name, 'BhandsMusic-2.3.0-Setup.exe');
+  assert.equal(info.release.asset.name, 'StarlightMusic-2.3.0-Setup.exe');
   assert.equal(info.release.asset.sha512, 'WINHASH');
   assert.equal(info.release.asset.size, 333);
 });

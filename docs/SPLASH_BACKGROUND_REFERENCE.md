@@ -1,7 +1,7 @@
 # 启动页背景特效 — 完整代码汇总
 
 > 用于移植/二次创作。全部代码自包含（WebGL shader + 2D 回退双路径），无外部依赖。
-> 采集自 `BhandsMusicChange`（2026-09-22，已与 Web 版逐字对齐）。
+> 采集自 `StarlightMusicChange`（2026-09-22，已与 Web 版逐字对齐）。
 >
 > ⚠️ 下表里的 `public/js/main.js` 行号对应**拆分前的基线 `784afe6`**。该文件已于 2026-09-24
 > 先按 48 个分区拆成 `public/js/app/01…16`、再按职责重排成 `00-prelude.js` + `01…18`（共 19 个），
@@ -82,7 +82,7 @@ function splashEaseOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
-function initBhandsMusicSplashWebgl(canvas) {
+function initStarlightMusicSplashWebgl(canvas) {
   var gl = null;
   try {
     gl = canvas.getContext('webgl', {
@@ -254,7 +254,7 @@ function initBhandsMusicSplashWebgl(canvas) {
   return true;
 }
 
-function drawBhandsMusicSplashWebgl(elapsed) {
+function drawStarlightMusicSplashWebgl(elapsed) {
   var gl = splashGl;
   if (!gl || !splashGlProgram || !splashGlUniforms) return;
   gl.viewport(0, 0, splashCanvas.width, splashCanvas.height);
@@ -267,10 +267,10 @@ function drawBhandsMusicSplashWebgl(elapsed) {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
-(function initBhandsMusicSplashCanvas() {
+(function initStarlightMusicSplashCanvas() {
   splashCanvas = document.getElementById('splash-canvas');
   if (!splashCanvas) return;
-  if (!reduceSplashMotion && initBhandsMusicSplashWebgl(splashCanvas)) {
+  if (!reduceSplashMotion && initStarlightMusicSplashWebgl(splashCanvas)) {
     splashCtx = null;
   } else {
     splashCtx = splashCanvas.getContext('2d');
@@ -339,15 +339,15 @@ function drawBhandsMusicSplashWebgl(elapsed) {
   }
   resize();
   window.addEventListener('resize', resize);
-  drawBhandsMusicSplash();
+  drawStarlightMusicSplash();
 })();
 
-function drawBhandsMusicSplash() {
+function drawStarlightMusicSplash() {
   if (!splashAnimating || (!splashCtx && !splashGl)) return;
-  requestAnimationFrame(drawBhandsMusicSplash);
+  requestAnimationFrame(drawStarlightMusicSplash);
   var elapsed = (performance.now() - splashStartedAt) / 1000;
   if (splashGl && splashGlProgram) {
-    drawBhandsMusicSplashWebgl(elapsed);
+    drawStarlightMusicSplashWebgl(elapsed);
     return;
   }
   splashCtx.clearRect(0, 0, splashW, splashH);
@@ -519,7 +519,7 @@ function drawBhandsMusicSplash() {
 | `splashCanvas` | canvas 引用 | 你的 canvas 元素 |
 | `splashStartedAt` | 动画起点时间 | 你的启动时刻 |
 | `splashAnimating` | 运行开关 | 你的显示/隐藏状态 |
-| `drawBhandsMusicSplash()` | 每帧入口（自驱动 rAF 循环） | 直接调用即可启动 |
+| `drawStarlightMusicSplash()` | 每帧入口（自驱动 rAF 循环） | 直接调用即可启动 |
 | `splashW / splashH` | 视口尺寸（resize 时更新） | 容器尺寸（若不满屏） |
 | `splashPixelRatio` | DPR 上限（WebGL 1.25 / 2D 1.6） | 保持或按性能调 |
 

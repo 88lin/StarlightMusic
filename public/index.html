@@ -1,5 +1,5 @@
 <!--
-  BhandsMusic — 私人视觉电台
+  StarlightMusic — 私人视觉电台
   单文件架构：HTML 结构 + 内联 CSS + 内联 JavaScript
   依赖：Three.js（3D 粒子）、music-tempo（节拍分析）、GSAP（动画）
 -->
@@ -8,7 +8,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BhandsMusic</title>
+<title>StarlightMusic</title>
 <meta name="referrer" content="no-referrer">
 
 <!-- 字体说明：原引用 Google Fonts（fonts.googleapis.com / fonts.gstatic.com），2026-10-08 移除 ——
@@ -101,8 +101,8 @@ try {
 
   <!-- 主内容 -->
   <div class="splash-content">
-    <div class="splash-wordmark" id="splash-wordmark" aria-label="BhandsMusic">
-      <span class="splash-word-mine">Bhands</span>
+    <div class="splash-wordmark" id="splash-wordmark" aria-label="StarlightMusic">
+      <span class="splash-word-mine">Starlight</span>
       <span class="splash-word-radio" aria-label="radio">Mus<span class="splash-word-i" aria-hidden="true"></span><span class="splash-word-o">c</span></span>
     </div>
     <div class="splash-signal-line"></div>
@@ -144,7 +144,7 @@ try {
 
 <!-- ==================== Home 首页 ==================== -->
 <!-- 未播放时显示的首页，包含快捷卡片（歌单库、每日推荐、继续听、听歌画像）和推荐横栏 -->
-<section id="empty-home" aria-label="BhandsMusic home">
+<section id="empty-home" aria-label="StarlightMusic home">
   <div class="empty-home-shell">
     <div class="home-hero" id="hero-daily-bg" onclick="playHomeDailyCard()" style="cursor:pointer">
       <div class="home-hero-cover-full" id="hero-daily-art"></div>
@@ -557,7 +557,7 @@ try {
       <div class="fx-sub memory-status-sub" id="memory-status-sub">后台先压缩播放器进程；系统级释放可清工作集、修改页、待机页</div>
       <div class="fx-toggle-grid">
         <div class="fx-toggle" id="t-memoryAutoTrimApp" onclick="toggleFx('memoryAutoTrimApp')"
-          title="最小化、托盘后台或深度后台时压缩 BhandsMusic / Electron 工作集"><span>自动压缩播放器</span><span class="dot"></span></div>
+          title="最小化、托盘后台或深度后台时压缩 StarlightMusic / Electron 工作集"><span>自动压缩播放器</span><span class="dot"></span></div>
         <div class="fx-toggle" id="t-memoryAutoTrimOnBackground" onclick="toggleFx('memoryAutoTrimOnBackground')"
           title="只在最小化、隐藏或不可见后台触发自动压缩，前台播放不打断"><span>后台触发压缩</span><span class="dot"></span></div>
         <div class="fx-toggle" id="t-memoryAutoSystemTrim" onclick="toggleFx('memoryAutoSystemTrim')"
@@ -910,7 +910,7 @@ try {
       <button id="login-provider-qq" class="qq" type="button" onclick="setLoginProvider('qq')">QQ 音乐</button>
     </div>
     <div class="login-intro">
-      <div class="login-intro-kicker">BhandsMusic</div>
+      <div class="login-intro-kicker">StarlightMusic</div>
       <div class="login-intro-title">音乐播放器，也是一座视觉舞台</div>
       <div class="login-intro-body">搜索或导入一首歌即可播放；登录后会同步歌单、红心和播客，让封面、歌词和粒子跟着音乐动起来。</div>
     </div>

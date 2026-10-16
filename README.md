@@ -1,15 +1,15 @@
 <h1 align="center">
-  <span style="background: linear-gradient(90deg, #00f5d4, #00bbf9, #9b5de5, #f15bb5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 3em;">✦ BhandsMusic ✦</span>
+  <span style="background: linear-gradient(90deg, #00f5d4, #00bbf9, #9b5de5, #f15bb5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 3em;">✦ StarlightMusic ✦</span>
   <br>
   <sub style="color: #888; font-size: 0.4em;">沉浸式音乐播放器 · 粒子视觉 · 3D 歌单架 · 多音源解析</sub>
 </h1>
 
-BhandsMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成一个完整的现场：多音源解析兜住曲库，18 种 GLSL 粒子视觉随节拍实时生长，3D 歌词舞台与歌单架让界面本身成为演出的一部分。
+StarlightMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成一个完整的现场：多音源解析兜住曲库，18 种 GLSL 粒子视觉随节拍实时生长，3D 歌词舞台与歌单架让界面本身成为演出的一部分。
 
 本项目基于开源项目 [Mineradio](https://github.com/XxHuberrr/Mineradio) 二次开发。
 
 <p align="center">
-  <img src="docs/screenshots/00-hero.jpg" width="720" alt="BhandsMusic 启动页"/>
+  <img src="docs/screenshots/00-hero.jpg" width="720" alt="StarlightMusic 启动页"/>
 </p>
 
 ## ✨ 界面预览
@@ -36,7 +36,7 @@ BhandsMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成一�
 
 ## 立即下载
 
-**当前版本：`v2.2.3`** → [点击下载最新版](https://github.com/Bhands6/BhandsMusicChange/releases/latest)
+**当前版本：`v2.2.3`** → [点击下载最新版](https://github.com/Bhands6/StarlightMusicChange/releases/latest)
 
 在 Release 页面认准对应平台的文件名：
 
@@ -90,8 +90,8 @@ npm run build:mac:dir    # 只解包不做 dmg，便于本地调试
 
 | 命令 | 说明 | 产物 |
 |---|---|---|
-| `build:win` | Windows NSIS 安装包 | `BhandsMusic-<版本>-Setup.exe` + `latest.yml` |
-| `build:mac` / `build:mac:x64` | macOS dmg | `BhandsMusic-<版本>-mac-<架构>.dmg` + `latest-mac.yml` |
+| `build:win` | Windows NSIS 安装包 | `StarlightMusic-<版本>-Setup.exe` + `latest.yml` |
+| `build:mac` / `build:mac:x64` | macOS dmg | `StarlightMusic-<版本>-mac-<架构>.dmg` + `latest-mac.yml` |
 
 > 打包前会自动执行对应的 `prebuild:*`：按目标平台与架构拉取内置换源二进制、酷狗 API 与启动动画素材。
 
@@ -102,7 +102,7 @@ npm run build:mac:dir    # 只解包不做 dmg，便于本地调试
 | 平台 | 更新方式 |
 |---|---|
 | **Windows** | 支持「轻量补丁」增量更新与完整安装包两条路径，多线路（含国内镜像）自动切换 |
-| **macOS** | 仅支持完整 dmg：应用下载 dmg 后自动打开它、同时打开「应用程序」文件夹，把 BhandsMusic 拖进去覆盖即可 |
+| **macOS** | 仅支持完整 dmg：应用下载 dmg 后自动打开它、同时打开「应用程序」文件夹，把 StarlightMusic 拖进去覆盖即可 |
 
 > macOS 走手动替换是刻意的：macOS 不允许替换正在运行的 `.app`，未做 Apple 公证的应用也无法静默自更新；而且补丁需要写入已签名的应用包内部，会直接破坏代码签名。因此 macOS 版不提供轻量补丁，发布时也不会上传 `.patch.json`。
 
@@ -119,7 +119,7 @@ npm run check:reorg       # 加载期读写顺序等价校验
 ## 📁 项目结构
 
 ```
-BhandsMusicChange/
+StarlightMusicChange/
 ├── desktop/                          # Electron 主进程
 │   ├── main.js                       # 窗口 / IPC / 托盘 / 更新 / 桌面歌词 / 壁纸
 │   ├── preload.js                    # 渲染进程安全桥（desktopWindow API）
@@ -202,7 +202,7 @@ BhandsMusicChange/
 
 ## 第三方音乐平台说明
 
-BhandsMusic 不是网易云音乐、QQ 音乐或腾讯音乐娱乐集团的官方客户端，也不隶属于任何音乐平台。
+StarlightMusic 不是网易云音乐、QQ 音乐或腾讯音乐娱乐集团的官方客户端，也不隶属于任何音乐平台。
 
 项目中的第三方平台接入仅用于个人学习、本地客户端体验和用户自有账号的播放辅助。请遵守对应平台的用户协议、版权规则和会员权益规则。
 
@@ -217,4 +217,4 @@ Copyright (C) 2026 XxHuberrr.
 
 本项目采用 GPL-3.0 授权。详见 [LICENSE](./LICENSE)。
 
-BM Logo、BhandsMusic 名称、界面视觉设计与原创视觉表达归作者所有；第三方依赖和第三方服务分别遵循其各自授权与服务条款。
+BM Logo、StarlightMusic 名称、界面视觉设计与原创视觉表达归作者所有；第三方依赖和第三方服务分别遵循其各自授权与服务条款。

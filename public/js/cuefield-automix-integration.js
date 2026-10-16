@@ -1,5 +1,5 @@
 // ============================================================================
-// Cuefield AutoMix · 播放集成（BhandsMusic fork 适配版）
+// Cuefield AutoMix · 播放集成（StarlightMusic fork 适配版）
 // 移植自上游 Mineradio 2.2.0 的 18-cuefield-automix-integration.js。
 // fork 适配点（与上游的差异，其余逐行同源）：
 //   1. localStorage 键品牌化：bhandsmusic-cuefield-automix-v1
