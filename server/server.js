@@ -2789,6 +2789,20 @@ async function qqGetJSON(targetUrl, params, opts) {
   return parseJSONText(text);
 }
 
+// (审计修复) 代理端点 SSRF 防护：拒绝内网/环回地址，防止被用来探测本机或内网服务。
+function isPrivateOrLocalUrl(u) {
+  try {
+    const parsed = new URL(u);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return true;
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) return true;
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
+    if (host === '0.0.0.0' || host === '::1' || host === '[::1]' || host === '::') return true;
+    return false;
+  } catch (e) { return true; }
+}
+
 function audioProxyHeadersFor(audioUrl, range) {
   const headers = { 'User-Agent': UA, Referer: 'https://music.163.com/' };
   try {
@@ -3901,6 +3915,20 @@ async function getLoginInfo() {
  *  /proxy/audio         - 音频代理
  *  /proxy/cover         - 封面代理
  * ==================================================================== */
+// ==================== 全局异常兜底（审计修复） ====================
+// 未捕获的异步异常会让整个本地服务崩溃 → 前端所有功能瘫痪（表现为"用着用着全坏了"）。
+// 兜底策略：记录日志并保持服务存活；本地单用户场景下这是可用性最优解。
+process.on('uncaughtException', (err) => {
+  console.error('[UncaughtException]', err && (err.stack || err.message || err));
+  try { fs.appendFileSync(path.join(PROJECT_ROOT, 'starlight-crash.log'),
+    new Date().toISOString() + ' uncaughtException: ' + (err && (err.stack || err.message)) + '\n'); } catch (e) {}
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[UnhandledRejection]', reason && ((reason && reason.stack) || reason.message || reason));
+  try { fs.appendFileSync(path.join(PROJECT_ROOT, 'starlight-crash.log'),
+    new Date().toISOString() + ' unhandledRejection: ' + ((reason && reason.stack) || reason) + '\n'); } catch (e) {}
+});
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost:' + PORT);
   const pn = url.pathname;  // 请求路径
@@ -4956,6 +4984,7 @@ const server = http.createServer(async (req, res) => {
         res.end('Invalid cover url');
         return;
       }
+      if (isPrivateOrLocalUrl(coverUrl)) { res.writeHead(403, { 'Access-Control-Allow-Origin': '*' }); res.end('Forbidden url'); return; }
       /* 代理请求封面图片（ported upstream PR #136：原生 http/https，避免 undici 连接超时） */
       const coverParsed = new URL(coverUrl);
       const coverTransport = coverParsed.protocol === 'https:' ? https : http;
@@ -4985,6 +5014,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const audioUrl = url.searchParams.get('url');
       if (!audioUrl) { res.writeHead(400); res.end('Missing url'); return; }
+      if (isPrivateOrLocalUrl(audioUrl)) { res.writeHead(403); res.end('Forbidden url'); return; }
       const range = req.headers.range || '';
       const hdr = audioProxyHeadersFor(audioUrl, range);
       // (ported upstream PR #136) 原生 http/https 避免 undici 连接超时
