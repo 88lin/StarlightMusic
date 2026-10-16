@@ -262,6 +262,13 @@ function updateLoginProviderUi() {
     shell.classList.toggle('qq-preview', isQQ);
     shell.classList.remove('netease-preview');
   }
+  var nePanel = document.getElementById('netease-cookie-panel');
+  var neToggle = document.getElementById('netease-cookie-toggle-btn');
+  if (nePanel) nePanel.classList.toggle('show', !isQQ && neteaseManualCookieOpen);
+  if (neToggle) {
+    neToggle.classList.toggle('show', !isQQ);
+    neToggle.textContent = neteaseManualCookieOpen ? '收起导入' : '手动导入';
+  }
   if (qqPanel) qqPanel.classList.toggle('show', isQQ && qqManualCookieOpen);
   if (qqCookieToggle) {
     qqCookieToggle.classList.toggle('show', isQQ);
@@ -318,6 +325,12 @@ async function refreshQr() {
 }
 function startQrPoll() { if (qrPollTimer) clearInterval(qrPollTimer); qrPollTimer = setInterval(checkQr, 2000); }
 function stopQrPoll() { if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; } }
+var neteaseManualCookieOpen = false;
+var neteaseLoginStatus = { provider: 'netease', loggedIn: false };
+function toggleNeteaseCookiePanel() {
+  neteaseManualCookieOpen = !neteaseManualCookieOpen;
+  updateLoginProviderUi();
+}
 function toggleQQCookiePanel() {
   qqManualCookieOpen = !qqManualCookieOpen;
   updateLoginProviderUi();
@@ -421,6 +434,43 @@ async function openQQWebLogin() {
       qqWebLoginBusy = false;
       updateLoginProviderUi();
     }
+  }
+}
+async function submitNeteaseCookieLogin() {
+  var input = document.getElementById('netease-cookie-input');
+  var statusEl = document.getElementById('qr-status');
+  var saveBtn = document.getElementById('netease-cookie-save-btn');
+  var cookie = input ? input.value.trim() : '';
+  if (!cookie) {
+    if (statusEl) { statusEl.textContent = '先粘贴网易云 cookie（需含 MUSIC_U）'; statusEl.className = 'fail'; }
+    return;
+  }
+  if (saveBtn) saveBtn.classList.add('busy');
+  if (statusEl) { statusEl.textContent = '正在保存网易云会话…'; statusEl.className = 'preview'; }
+  try {
+    var info = await apiJson('/api/login/cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookie: cookie })
+    });
+    if (!info || (!info.loggedIn && !info.pendingProfile)) throw new Error((info && (info.message || info.error)) || '网易云会话不可用');
+    if (input) input.value = '';
+    neteaseLoginStatus = info; // 全局态引用（见下 var 声明）
+    activeAccountProvider = 'netease';
+    renderUserBtn();
+    refreshUserPlaylists(true);
+    homeDiscoverState.loaded = false;
+    homeDiscoverState.loggedIn = true;
+    loadHomeDiscover(true);
+    if (statusEl) { statusEl.textContent = '网易云会话已保存'; statusEl.className = 'scan'; }
+    setTimeout(function(){
+      closeLoginModal();
+      showToast('网易云音乐已登录: ' + (info.nickname || info.userId || ''));
+    }, 420);
+  } catch (e) {
+    if (statusEl) { statusEl.textContent = e && e.message ? e.message : '网易云会话保存失败'; statusEl.className = 'fail'; }
+  } finally {
+    if (saveBtn) saveBtn.classList.remove('busy');
   }
 }
 async function submitQQCookieLogin() {
