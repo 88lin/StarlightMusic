@@ -1234,8 +1234,10 @@ async function attemptAudioPlay(opts) {
       if (!audioReady) initAudio();
       if (opts.fade !== false) preparePlaybackFadeIn();
       if (opts.manual) {
-        var manualPlay = audio.play();
+        // (ported upstream PR #166) 先恢复 AudioContext 再 play，否则长时间暂停后
+        // 手动点播放时 UI 显示播放中但无声
         await resumeAudioAnalysis();
+        var manualPlay = audio.play();
         await manualPlay;
       } else {
         await resumeAudioAnalysis();
