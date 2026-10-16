@@ -133,11 +133,16 @@ test('解析真实产物 dist/latest-mac.yml：选中条目、取该条目自己
   const ymlPath = path.join(ROOT, 'dist', 'latest-mac.yml');
   if (!fs.existsSync(ymlPath)) return;   // 未构建过 mac 包时跳过
   const yml = fs.readFileSync(ymlPath, 'utf8');
+  // ⚠️ 版本号从清单里现取，不硬编码 —— 否则每次发版重新打包后这个测试都会误报失败
+  const manifestVersion = (yml.match(/^version:\s*(.+?)\s*$/m) || [])[1];
+  assert.ok(manifestVersion, 'latest-mac.yml 里没解析到 version');
+  const expectedName = 'BhandsMusic-' + manifestVersion + '-mac-arm64.dmg';
   assert.equal(macArm.parseYmlFileEntries(yml).length, 1);
-  assert.equal(macArm.pickYmlInstallerEntry(yml).url, 'BhandsMusic-2.2.0-mac-arm64.dmg');
+  assert.equal(macArm.pickYmlInstallerEntry(yml).url, expectedName);
   const info = macArm.parseLatestYmlUpdateInfo(yml, '');
-  assert.equal(info.release.asset.name, 'BhandsMusic-2.2.0-mac-arm64.dmg');
-  assert.equal(info.release.asset.size, 176958366);
+  assert.equal(info.release.asset.name, expectedName);
+  // dmg 体积断言用范围而不是精确值：精确值会随每次重新构建而变
+  assert.ok(info.release.asset.size > 100 * 1024 * 1024, 'dmg 体积异常：' + info.release.asset.size);
   assert.ok(info.release.asset.sha512.length > 20, 'sha512 没解析出来');
   // macOS 不提供快速补丁（补丁会写进已签名 bundle，破坏代码签名）
   assert.equal(info.release.patchAvailable, false);
