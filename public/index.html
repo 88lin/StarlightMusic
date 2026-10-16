@@ -920,6 +920,13 @@ try {
       <button id="qq-web-login-card" class="qq-login-mark" type="button" onclick="openProviderWebLogin()"><b>QQ</b><span>打开官方扫码窗口</span></button>
     </div>
     <div id="qr-status">正在生成二维码…</div>
+    <div id="netease-cookie-panel" class="qq-cookie-panel">
+      <textarea id="netease-cookie-input" class="qq-cookie-input" spellcheck="false" autocomplete="off" placeholder="MUSIC_U=...;  或整串从浏览器复制的 Cookie 头"></textarea>
+      <div class="qq-cookie-actions">
+        <div class="qq-cookie-note">从 music.163.com 的登录会话导入（需包含 MUSIC_U）。</div>
+        <button id="netease-cookie-save-btn" class="modal-btn primary" type="button" onclick="submitNeteaseCookieLogin()">保存</button>
+      </div>
+    </div>
     <div id="qq-cookie-panel" class="qq-cookie-panel">
       <textarea id="qq-cookie-input" class="qq-cookie-input" spellcheck="false" autocomplete="off" placeholder="uin=...; qqmusic_key=...; qm_keyst=..."></textarea>
       <div class="qq-cookie-actions">
@@ -931,6 +938,7 @@ try {
       <button class="modal-btn" onclick="closeLoginModal()">取消</button>
       <button class="modal-btn" onclick="skipLoginAndFocusSearch()">先搜索一首歌</button>
       <button id="login-both-btn" class="modal-btn" onclick="requestDualLoginMode()">我两个都要</button>
+      <button id="netease-cookie-toggle-btn" class="modal-btn" type="button" onclick="toggleNeteaseCookiePanel()">手动导入</button>
       <button id="qq-cookie-toggle-btn" class="modal-btn" type="button" onclick="toggleQQCookiePanel()">手动导入</button>
       <button id="refresh-qr-btn" class="modal-btn primary" onclick="refreshQr()">刷新二维码</button>
     </div>
