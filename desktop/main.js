@@ -2129,8 +2129,10 @@ async function runMemoryAutoTick(reason = 'auto') {
   memoryAutoState.lastRunAt = Date.now();
   memoryAutoState.lastReason = reason;
   try {
+    // (ported upstream PR #439) 自动/后台清理禁止请求管理员提权：避免周期性 UAC 弹窗。
+    // 提权仅在用户手动触发且显式勾选 autoElevate 时允许。
     const result = await systemMemory.purgeSystemMemorySmart(memoryAutoState.mask, {
-      autoElevate: memoryAutoState.autoElevate === true,
+      autoElevate: false,
     });
     memoryAutoState.lastResult = result;
     memoryAutoState.lastError = '';
