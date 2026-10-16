@@ -4872,21 +4872,26 @@ const server = http.createServer(async (req, res) => {
         res.end('Invalid cover url');
         return;
       }
-      /* 代理请求封面图片 */
-      const resp = await fetch(coverUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://music.163.com/' } });
-      const ct  = resp.headers.get('content-type') || 'image/jpeg';
-      const cl  = resp.headers.get('content-length');
-      const hdr = {
-        'Content-Type': ct,
-        'Access-Control-Allow-Origin': '*',
-        'Cross-Origin-Resource-Policy': 'cross-origin',
-        'Cache-Control': 'public, max-age=86400',  // 缓存 24 小时
-      };
-      if (cl) hdr['Content-Length'] = cl;
-      res.writeHead(resp.status, hdr);
-      const reader = resp.body.getReader();
-      while (true) { const c = await reader.read(); if (c.done) break; res.write(c.value); }
-      res.end();
+      /* 代理请求封面图片（ported upstream PR #136：原生 http/https，避免 undici 连接超时） */
+      const coverParsed = new URL(coverUrl);
+      const coverTransport = coverParsed.protocol === 'https:' ? https : http;
+      const coverReq = coverTransport.get(coverUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://music.163.com/' }, family: 4, timeout: 12000 }, (resp) => {
+        const ct = resp.headers['content-type'] || 'image/jpeg';
+        const cl = resp.headers['content-length'];
+        const hdr = {
+          'Content-Type': ct,
+          'Access-Control-Allow-Origin': '*',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cache-Control': 'public, max-age=86400',  // 缓存 24 小时
+        };
+        if (cl) hdr['Content-Length'] = cl;
+        res.writeHead(resp.statusCode, hdr);
+        resp.on('data', (chunk) => res.write(chunk));
+        resp.on('end', () => res.end());
+        resp.on('error', (err) => { console.error('[Cover] upstream chunk error:', err.message); res.end(); });
+      });
+      coverReq.on('error', (err) => { console.error('[Cover] request error:', err.message); if (!res.headersSent) { res.writeHead(502); } res.end(); });
+      coverReq.on('timeout', () => { console.error('[Cover] request timeout'); coverReq.destroy(); if (!res.headersSent) { res.writeHead(504); } res.end(); });
     } catch (err) { console.error('[Cover]', err); res.writeHead(500); res.end(); }
     return;
   }
@@ -4898,18 +4903,24 @@ const server = http.createServer(async (req, res) => {
       if (!audioUrl) { res.writeHead(400); res.end('Missing url'); return; }
       const range = req.headers.range || '';
       const hdr = audioProxyHeadersFor(audioUrl, range);
-      const up = await fetch(audioUrl, { headers: hdr });
-      const out = {
-        'Content-Type': audioContentTypeForUrl(audioUrl, up.headers.get('content-type')),
-        'Access-Control-Allow-Origin': '*',
-        'Accept-Ranges': 'bytes',
-      };
-      const cl = up.headers.get('content-length'); if (cl) out['Content-Length'] = cl;
-      const cr = up.headers.get('content-range');  if (cr) out['Content-Range']  = cr;
-      res.writeHead(up.status, out);
-      const reader = up.body.getReader();
-      while (true) { const c = await reader.read(); if (c.done) break; res.write(c.value); }
-      res.end();
+      // (ported upstream PR #136) 原生 http/https 避免 undici 连接超时
+      const parsedUrl = new URL(audioUrl);
+      const transport = parsedUrl.protocol === 'https:' ? https : http;
+      const proxyReq = transport.get(audioUrl, { headers: hdr, family: 4, timeout: 15000 }, (up) => {
+        const out = {
+          'Content-Type': audioContentTypeForUrl(audioUrl, up.headers['content-type']),
+          'Access-Control-Allow-Origin': '*',
+          'Accept-Ranges': 'bytes',
+        };
+        if (up.headers['content-length']) out['Content-Length'] = up.headers['content-length'];
+        if (up.headers['content-range']) out['Content-Range'] = up.headers['content-range'];
+        res.writeHead(up.statusCode, out);
+        up.on('data', (chunk) => res.write(chunk));
+        up.on('end', () => res.end());
+        up.on('error', (err) => { console.error('[Audio] upstream chunk error:', err.message); res.end(); });
+      });
+      proxyReq.on('error', (err) => { console.error('[Audio] request error:', err.message); if (!res.headersSent) { res.writeHead(502); } res.end(); });
+      proxyReq.on('timeout', () => { console.error('[Audio] request timeout'); proxyReq.destroy(); if (!res.headersSent) { res.writeHead(504); } res.end(); });
     } catch (err) { console.error('[Audio]', err); res.writeHead(500); res.end(); }
     return;
   }
