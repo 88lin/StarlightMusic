@@ -383,6 +383,31 @@ Function StarlightMusicNormalizeInstallDir
   Push "$0"
   Call StarlightMusicTrimInstallDir
   Pop $0
+
+  ; 折叠路径里重复的 \StarlightMusic 段：
+  ; 修复「默认安装位置显示 D:\StarlightMusic\StarlightMusic\StarlightMusic」——
+  ; 历史上某个入口（浏览选择嵌套目录 / 旧版注册表残留）可能产生重复段，
+  ; 旧逻辑只检查末 12 字符，重复段全部原样保留。这里从尾部向前折叠，
+  ; 任何 X\StarlightMusic\StarlightMusic... 形态都收敛为 X\StarlightMusic。
+  push_collapse:
+    StrLen $1 "$0"
+    ${If} $1 > 15
+      StrCpy $2 "$0" 15 -15
+      ${If} $2 == "\StarlightMusic"
+      ${OrIf} $2 == "\starlightmusic"
+        StrCpy $3 "$0" -12          ; X 部分（可能是 X\StarlightMusic）
+        StrLen $4 "$3"
+        ${If} $4 > 15
+          StrCpy $5 "$3" 15 -15
+          ${If} $5 == "\StarlightMusic"
+          ${OrIf} $5 == "\starlightmusic"
+            StrCpy $0 "$3"          ; 去掉一段，继续折叠
+            Goto push_collapse
+          ${EndIf}
+        ${EndIf}
+      ${EndIf}
+    ${EndIf}
+
   StrLen $1 "$0"
   ${If} $1 == 2
     StrCpy $2 "$0" 1 1
@@ -399,8 +424,8 @@ Function StarlightMusicNormalizeInstallDir
   ${EndIf}
 
   StrLen $1 "$0"
-  StrCpy $2 "$0" 12 -12
-  ${If} $1 < 12
+  StrCpy $2 "$0" 15 -15
+  ${If} $1 < 15
   ${OrIf} $2 != "\StarlightMusic"
   ${AndIf} $2 != "\starlightmusic"
     StrCpy $0 "$0\StarlightMusic"
@@ -693,8 +718,8 @@ Function StarlightMusicValidateInstallDir
   Pop $4
 
   StrLen $0 "$INSTDIR"
-  StrCpy $1 "$INSTDIR" 12 -12
-  ${If} $0 < 12
+  StrCpy $1 "$INSTDIR" 15 -15
+  ${If} $0 < 15
   ${OrIf} $1 != "\StarlightMusic"
   ${AndIf} $1 != "\starlightmusic"
     MessageBox MB_ICONSTOP|MB_OK "安装目录必须是独立的 StarlightMusic 文件夹。请选择一个上级目录，安装器会自动创建 StarlightMusic 子文件夹。"
@@ -1007,8 +1032,8 @@ Function un.StarlightMusicNormalizeInstallDir
   ${EndIf}
 
   StrLen $1 "$0"
-  StrCpy $2 "$0" 12 -12
-  ${If} $1 < 12
+  StrCpy $2 "$0" 15 -15
+  ${If} $1 < 15
   ${OrIf} $2 != "\StarlightMusic"
   ${AndIf} $2 != "\starlightmusic"
     StrCpy $0 "$0\StarlightMusic"
