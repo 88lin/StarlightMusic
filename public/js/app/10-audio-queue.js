@@ -760,6 +760,24 @@ function handlePlaybackUnavailable(song, data) {
  */
 function handlePlaybackSourceError() {
   var song = (Array.isArray(playQueue) && currentIdx >= 0) ? playQueue[currentIdx] : null;
+  // (ported upstream issue #479) 本地文件加载失败（U盘拔出/文件移动/被删除）时，
+  // 停在坏曲目上只会反复弹「播放启动失败」；提示原因并自动尝试队列中的下一首。
+  if (song && (song.type === 'local' || song.type === 'podcast')) {
+    if (playQueue.length > 1) {
+      showSourceFallbackNotice('本地文件无法访问', '文件可能已被移除或所在盘符不可用，正在尝试下一首。');
+      var token = trackSwitchToken;
+      setTimeout(function(){
+        if (token !== trackSwitchToken) return;
+        var nextIdx = nextUnblockedQueueIndex(currentIdx);
+        if (nextIdx < 0) { showToast('队列中没有其他可播放的歌曲'); return; }
+        currentIdx = nextIdx;
+        playQueueAt(nextIdx, { fallbackDepth: 0 });
+      }, 600);
+    } else {
+      showToast('本地文件无法访问：文件可能已被移除或盘符不可用');
+    }
+    return;
+  }
   if (!song || song.type === 'local' || song.type === 'podcast') return;
   if (song.id === undefined || song.id === null) return;
   showSourceFallbackNotice('音源链接失效', '已清除这首歌的解析缓存，重新播放会重新解析。');
