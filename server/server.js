@@ -3735,15 +3735,18 @@ function normalizeNeteaseVip(profile, account, extra) {
   profile = profile || {};
   account = account || {};
   extra = extra || {};
-  const vipInfo = profile.vipInfo || profile.vipinfo || account.vipInfo || account.vipinfo || extra.vipInfo || extra.vipinfo || {};
-  const objects = [account, profile, vipInfo, extra];
-  const vipType = firstPositiveNumberFrom(objects, [
-    'vipType', 'vip_type', 'viptype', 'musicVipType', 'music_vip_type',
-    'musicVipLevel', 'music_vip_level', 'redVipLevel', 'red_vip_level',
-    'blackVipLevel', 'black_vip_level', 'luxuryVipLevel', 'luxury_vip_level',
-    'svipType', 'svip_type',
+  // (ported upstream PR #249) 只从 profile/account 的标准 vipType 字段取 VIP 类型，
+  // 避免 musicVipLevel/redVipLevel 等 numeric level 值先被命中导致普通 VIP 误判为 SVIP。
+  const vipInfos = [
+    profile.vipInfo, profile.vipinfo,
+    account.vipInfo, account.vipinfo,
+    extra.vipInfo, extra.vipinfo,
+  ].filter(value => value && typeof value === 'object');
+  const objects = [account, profile, ...vipInfos, extra];
+  const vipType = firstPositiveNumberFrom([profile, account, ...vipInfos], [
+    'vipType', 'vip_type', 'viptype',
   ]);
-  const text = collectVipStringValues({ account, profile, vipInfo, extra }, [], 0).join(' ').toLowerCase();
+  const text = collectVipStringValues({ account, profile, vipInfos, extra }, [], 0).join(' ').toLowerCase();
   const svipFlag = objects.some(obj => obj && (
     obj.isSvip === true || obj.is_svip === true || obj.svip === true ||
     Number(obj.isSvip || obj.is_svip || obj.svip || obj.svipType || obj.svip_type || 0) > 0
