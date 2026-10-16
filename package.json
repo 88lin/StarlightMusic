@@ -131,7 +131,7 @@
       {
         "provider": "github",
         "owner": "Bhands6",
-        "repo": "StarlightMusicChange"
+        "repo": "StarlightMusic"
       }
     ]
   },
@@ -139,7 +139,7 @@
     "update": {
       "provider": "github",
       "owner": "Bhands6",
-      "repo": "StarlightMusicChange",
+      "repo": "StarlightMusic",
       "preview": true,
       "preferMirrors": true,
       "mirrors": [
