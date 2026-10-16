@@ -2626,7 +2626,27 @@ async function createWindow() {
     setTimeout(() => applyWindowedBounds(mainWindow), 50);
   });
 
-  // 加载本地服务器页面
+  /**
+ * (ported upstream PR #170) 主窗口加载重试：本地 server 就绪竞态或偶发
+ * ERR_FAILED 时按退避间隔重试，避免启动黑屏需手动重启。
+ */
+async function loadUrlWithRetry(win, url, attempts = 5) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await win.loadURL(url);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!win || win.isDestroyed() || attempt >= attempts) break;
+      console.warn(`Main window load failed, retrying (${attempt}/${attempts}):`, error.message);
+      await new Promise((resolve) => setTimeout(resolve, 260 * attempt));
+    }
+  }
+  throw lastError || new Error('MAIN_WINDOW_LOAD_FAILED');
+}
+
+// 加载本地服务器页面
   await mainWindow.loadURL(`http://127.0.0.1:${port}`);
 }
 
