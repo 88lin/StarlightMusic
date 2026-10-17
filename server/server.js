@@ -55,6 +55,7 @@ const {
 /* ==================== Node.js 核心模块 ==================== */
 const http = require('http');       // HTTP 服务器
 const https = require('https');     // HTTPS 请求
+const os = require('os');           // 平台兜底路径（节拍缓存目录等）
 const fs   = require('fs');         // 文件系统操作
 const path = require('path');       // 路径处理
 const crypto = require('crypto');   // 加密（SHA256/SHA512 校验）
@@ -131,7 +132,13 @@ const QQ_COOKIE_FILE = process.env.QQ_COOKIE_FILE || path.join(PROJECT_ROOT, '.q
 const UPDATE_WORK_DIR = process.env.STARLIGHTMUSIC_UPDATE_DIR || path.join(PROJECT_ROOT, 'updates');         // 更新工作目录
 const UPDATE_DOWNLOAD_DIR = process.env.STARLIGHTMUSIC_UPDATE_DOWNLOAD_DIR || path.join(UPDATE_WORK_DIR, 'downloads');  // 更新下载目录
 const UPDATE_PATCH_BACKUP_DIR = process.env.STARLIGHTMUSIC_PATCH_BACKUP_DIR || path.join(UPDATE_WORK_DIR, 'backups', 'patches');  // 补丁备份目录
-const BEATMAP_CACHE_DIR = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';  // 节拍映射缓存目录
+// 节拍映射缓存目录。win32 沿用 D: 盘既有约定；其余平台回落到用户主目录
+// （mac 打包版 CWD=/ 时 mkdirSync 会抛 EACCES，节拍缓存静默退化 memory-only）。
+// 桌面端 main.js 启动时会注入 STARLIGHTMUSIC_BEAT_CACHE_DIR（userData 下）覆盖此兜底。
+const BEATMAP_CACHE_DIR = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR ||
+  (process.platform === 'win32'
+    ? 'D:\\StarlightMusicCache\\beatmaps'
+    : path.join(os.homedir(), 'StarlightMusicCache', 'beatmaps'));
 // cuefield 反馈记录：桌面端 main.js 注入 userData 下的路径；裸跑（如本地调试）时退回仓库根。
 const CUEFIELD_FEEDBACK_FILE = process.env.STARLIGHTMUSIC_CUEFIELD_FEEDBACK_FILE || path.join(PROJECT_ROOT, 'cuefield-feedback.jsonl');
 const MUSIC_SOURCES_CONFIG_FILE = path.join(PROJECT_ROOT, '.music-sources.json');  // 音源配置文件
