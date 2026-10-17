@@ -1,11 +1,13 @@
 // ============================================================
 //  Web 版新增 9 个粒子特效 · 移植到桌面版
 //  极光 / 万花筒 / 迸发 / 声波地形 / 螺旋星云 / 水母花 / 玫瑰 / 心跳 / 字符雨
+//  + 桌面新增：烟花盛放 / 蝶舞 / 旋转木马
 //
 //  来源：StarlightMusic_Web/apps/web/src/components/particleShaders.ts + ParticleStage.tsx
 //  桌面预设索引（保留 0–5 原 shader + 6 安魂 + 7/8 音域回响）：
 //    9 极光 · 10 万花筒 · 11 迸发 · 12 声波地形 · 13 螺旋星云
 //    14 水母花 · 15 玫瑰 · 16 心跳 · 17 字符雨
+//    18 烟花盛放 · 19 蝶舞 · 20 旋转木马
 //  shader 内用 uEff = desktopIndex - 3 映射到 Web 的 6–14 分支阈值。
 // ============================================================
 (function (global) {
@@ -16,18 +18,21 @@
     WEB_BASE: 6,              // Web 对应起始
     AURORA: 9, KALEIDO: 10, BURST: 11, SONIC: 12, SPIRAL: 13,
     JELLY: 14, ROSE: 15, HEART: 16, RAIN: 17,
+    FIREWORKS: 18, LAVA: 19, BLACKHOLE: 20,
     ROSE_GRID_BOOST: 1.5
   };
 
-  // 主层需 Additive 的预设（水母/玫瑰/心跳/字符雨）
+  // 主层需 Additive 的预设（水母/玫瑰/心跳/字符雨 + 烟花/熔岩/黑洞）
   function webFxNeedsAdditive(preset) {
-    return preset === WEB_FX.JELLY || preset === WEB_FX.ROSE || preset === WEB_FX.HEART || preset === WEB_FX.RAIN;
+    return preset === WEB_FX.JELLY || preset === WEB_FX.ROSE || preset === WEB_FX.HEART || preset === WEB_FX.RAIN
+      || preset === WEB_FX.FIREWORKS || preset === WEB_FX.LAVA || preset === WEB_FX.BLACKHOLE;
   }
   function webFxNeedsGalaxyReset(preset) {
-    return preset === WEB_FX.SPIRAL || preset === WEB_FX.ROSE || preset === WEB_FX.HEART || preset === WEB_FX.RAIN;
+    return preset === WEB_FX.SPIRAL || preset === WEB_FX.ROSE || preset === WEB_FX.HEART || preset === WEB_FX.RAIN
+      || preset === WEB_FX.FIREWORKS || preset === WEB_FX.LAVA || preset === WEB_FX.BLACKHOLE;
   }
   function webFxIsNewPreset(preset) {
-    return preset >= WEB_FX.DESKTOP_BASE && preset <= WEB_FX.RAIN;
+    return preset >= WEB_FX.DESKTOP_BASE && preset <= WEB_FX.BLACKHOLE;
   }
 
   var PRESET_META = [
@@ -39,7 +44,10 @@
     { name: '水母花', desc: '伞盖 · 触须' },
     { name: '玫瑰', desc: '数学玫瑰 · 绽放' },
     { name: '心跳', desc: '爱心粒子 · 星空' },
-    { name: '字符雨', desc: 'Matrix 字形雨' }
+    { name: '字符雨', desc: 'Matrix 字形雨' },
+    { name: '烟花盛放', desc: '多弹爆散 · 拖尾下坠' },
+    { name: '蝶舞', nameHtml: '蝶舞 <span class="pc-name-en">Butterfly</span>', desc: '扑翼飞行 · 曲线成翼' },
+    { name: '旋转木马', nameHtml: '旋转木马 <span class="pc-name-en">Carousel</span>', desc: '心形坐骑 · 伞盖旋转' }
   ];
 
   var PRESET_ICONS = [
@@ -51,7 +59,10 @@
     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 9c0-2.2 1.8-4 4-4s4 1.8 4 4c0 1.5-.8 2.5-2 3.2V18"/><path d="M10 21v-3"/><path d="M7 12c-1 .8-1.5 1.8-1.5 3M17 12c1 .8 1.5 1.8 1.5 3"/></svg>',
     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 20c-4-3-7-6.2-7-9.5C5 7.5 7.5 5 10 5c1 0 1.7.4 2 1 .3-.6 1-1 2-1 2.5 0 5 2.5 5 5.5 0 3.3-3 6.5-7 9.5z"/><path d="M12 11c1.2-1 2.2-1.2 3.2-.6"/></svg>',
     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 20s-6.5-4.2-8.2-8.1C2.5 9 4.2 6 7.2 6c1.6 0 2.7.8 3.3 1.8C11.1 6.8 12.2 6 13.8 6c3 0 4.7 3 3.4 5.9C15.5 15.8 12 20 12 20z"/><path d="M8 12h1.5l1-2 1.5 4 1-2H16"/></svg>',
-    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M7 4v14M7 20h.01"/><path d="M12 6v10M12 20h.01"/><path d="M17 3v12M17 20h.01"/><path d="M5 6h4M10 9h4M15 5h4"/></svg>'
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M7 4v14M7 20h.01"/><path d="M12 6v10M12 20h.01"/><path d="M17 3v12M17 20h.01"/><path d="M5 6h4M10 9h4M15 5h4"/></svg>',
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="9.6" r="1.5"/><path d="M12 3.4v2.1M12 13.8v2.1M5.6 9.6h2.1M16.3 9.6h2.1M7.5 5.1l1.5 1.5M15 12.6l1.5 1.5M16.5 5.1L15 6.6M9 12.6l-1.5 1.5"/><path d="M9 20.8l.7-2.3M12 21.3l.2-2.5M15 20.8l-.7-2.3"/></svg>',
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 7.2c-1.9-2.1-4.7-2.5-6.3-1C3.9 7.6 4.5 10.8 7 12c1.4.7 3.4 1 5 .8"/><path d="M12 7.2c1.9-2.1 4.7-2.5 6.3-1 1.8 1.4 1.2 4.6-1.3 5.8-1.4.7-3.4 1-5 .8"/><path d="M12 7.2v8.2"/><path d="M11 15.4c-.9.8-1.2 1.8-1 2.7M13 15.4c.9.8 1.2 1.8 1 2.7"/></svg>',
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8.6L12 3.6l9 5H3z"/><path d="M12 8.6v9.2"/><path d="M4.2 19.4h15.6"/><path d="M7.6 8.6v6.2M16.4 8.6v6.2"/><path d="M6.2 15.2h2.8M15 15.2h2.8"/></svg>'
   ];
 
   // 相机机位（对齐 Web PRESET_CAMERA；键为桌面索引）
@@ -64,7 +75,10 @@
     14: { radius: 10.6, phi: 0.06 },  // jelly
     15: { radius: 8.2,  phi: 0.05 },  // rose
     16: { radius: 9.0,  phi: 0.03 },  // heart
-    17: { radius: 9.5,  phi: 0.02 }   // rain
+    17: { radius: 9.5,  phi: 0.02 },  // rain
+    18: { radius: 10.0, phi: 0.04 },  // fireworks（覆盖面广，拉远）
+    19: { radius: 8.6,  phi: 0.14 },  // butterfly（略俯视看清翅膀展开）
+    20: { radius: 8.2,  phi: 0.10 }   // carousel（略俯视，坐骑圆周展开）
   };
 
   // ---- GLSL：常量 + 辅助（插在 hash11 之后）----
@@ -137,6 +151,36 @@
     '  float n3 = snoise(vec3(p.x + e, p.y, tt));',
     '  float n4 = snoise(vec3(p.x - e, p.y, tt));',
     '  return vec2(n1 - n2, n4 - n3) / (2.0 * e);',
+    '}',
+    // ---- 烟花盛放（桌面 18 / uEff 15）----
+    '#define FW_SHELLS 7.0',
+    '#define FW_STAR_SHARE 0.24',
+    '#define FW_DRAG 1.05',
+    '#define FW_GRAV 1.35',
+    '#define FW_WIND 0.22',
+    // ---- 蝶舞（桌面 19 / uEff 16）----
+    '#define BF_COUNT 18.0',
+    '#define BF_SCALE 0.45',
+    '#define BF_FLAP 7.2',
+    '#define BF_BODY_SHARE 0.11',
+    // 蝴蝶飞行轨迹（利萨如曲线 + 每只独立缩放，避免串成一条线）
+    'vec3 bfPath(float tt, float p1, float p3, float p4){',
+    '  float sc = 0.45 + 0.55 * fract(p1 * 7.31);',
+    '  return vec3(sin(tt * 0.90) * 5.40 * sc,',
+    '              sin(tt * 1.35 + p3 * 3.0) * 1.60,',
+    '              cos(tt * 0.70 + p4 * 3.0) * 3.20 * sc);',
+    '}',
+    // ---- 旋转木马（桌面 20 / uEff 17）----
+    '#define CR_TILT 0.358',
+    '#define CR_R 2.55',
+    '#define CR_TOP_Y 1.62',
+    '#define CR_BASE_Y -1.55',
+    '#define CR_RIDERS 8.0',
+    '#define CR_SPEED 0.42',
+    '#define CR_CONE 1.60',
+    'vec3 hsv2rgb(vec3 c){',
+    '  vec3 k = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);',
+    '  return c.z * mix(vec3(1.0), k, c.y);',
     '}'
   ].join('\n');
 
@@ -573,7 +617,7 @@
 '      maxRippleAmp = max(maxRippleAmp, uBass * 0.05 + uBeat * 0.04);',
 '    }',
 '  }',
-'  else {',
+'  else if (uEff < 14.5) {',
 '    float rainGx = floor(aUv.x * uGrid);',
 '    float rainGy = floor(aUv.y * uGrid);',
 '    float rainPid = rainGy * uGrid + rainGx;',
@@ -619,6 +663,188 @@
 '    float appear = 1.0 - pow(1.0 - appearRaw, 3.0);',
 '    vAlpha = appear * body * (1.00 + uBass * 0.25 + uEnergy * 0.15) * (1.0 + gold * 0.8 + isHead * 0.7) * kept;',
 '    maxRippleAmp = max(maxRippleAmp, uBass * 0.05 + uEnergy * 0.05);',
+'  }',
+
+    // ============================================================
+    //  桌面 18 / uEff 15 — 烟花盛放
+    //  多弹分组 · 球面爆散 · 重力下坠 · 拖尾闪烁 · 常驻星空
+    // ============================================================
+'  else if (uEff < 15.5) {',
+'    float fwgx = floor(aUv.x * uGrid);',
+'    float fwgy = floor(aUv.y * uGrid);',
+'    float fwpid = fwgy * uGrid + fwgx;',
+'    float fwR1 = hash11(aRand * 931.7 + 0.61);',
+'    float fwR2 = hash11(aRand * 517.3 + 3.19);',
+'    float fwR3 = hash11(aRand * 271.1 + 7.77);',
+'    if (aUv.y > 1.0 - FW_STAR_SHARE) {',
+'      pos = vec3((fwR1 - 0.5) * 19.0, (fwR2 - 0.5) * 11.0, -7.0 - fwR3 * 9.0);',
+'      float tw = 0.5 + 0.5 * sin(t * (1.1 + fwR3 * 2.4) + aRand * 6.2831853);',
+'      vColor = mix(vec3(0.68, 0.80, 1.00), vec3(1.00, 0.94, 0.82), fwR1);',
+'      vAlpha = (0.13 + tw * 0.26) * (1.0 + uBass * 0.22);',
+'      vPack1.w = 0.55 + tw * 0.50;',
+'      maxRippleAmp = max(maxRippleAmp, uBass * 0.03);',
+'    } else {',
+'      float shellId = mod(fwpid, FW_SHELLS);',
+'      float sA = hash11(shellId * 11.3 + 2.17);',
+'      float sB = hash11(shellId * 23.7 + 5.91);',
+'      float sC = hash11(shellId * 37.1 + 9.43);',
+'      float period = 2.40 + sA * 1.90;',
+'      float life = 1.50 + sC * 0.95;',
+'      float age = mod(uGalaxyAge + sB * 3.70, period);',
+'      float alive = 1.0 - step(life, age);',
+'      vec3 center = vec3((sA - 0.5) * 8.4, -1.4 + sB * 3.6, (sC - 0.5) * 2.6);',
+'      float th = fwR1 * 6.2831853;',
+'      float ph = acos(clamp(2.0 * fwR2 - 1.0, -1.0, 1.0));',
+'      vec3 dir = vec3(sin(ph) * cos(th), cos(ph), sin(ph) * sin(th));',
+'      float rad = pow(fwR3, 0.33333);',
+'      float burstBoost = uBurstAmt * 1.15;',
+'      float v0 = 2.90 + sA * 1.70 + burstBoost + uBass * 1.45 * K * 0.50;',
+'      float travel = v0 * (1.0 - exp(-FW_DRAG * age)) / FW_DRAG;',
+'      float rr = travel * rad * (0.34 + 0.66 * rad);',
+'      vec3 fp = center + dir * rr;',
+'      fp.y -= 0.5 * FW_GRAV * age * age;',
+'      fp.x += sin(t * 0.35 + sB * 6.2831853) * age * FW_WIND;',
+'      pos = fp;',
+'      float ageN = clamp(age / life, 0.0, 1.0);',
+'      float flash = exp(-age * 6.5) * (1.0 + burstBoost * 0.80);',
+'      float fade = 1.0 - smoothstep(0.42, 1.0, ageN);',
+'      float sparkle = 0.55 + 0.45 * sin(age * 27.0 + aRand * 41.0);',
+'      vec3 shellCol = hsv2rgb(vec3(fract(shellId * 0.137 + sA * 0.23), 0.70 + sB * 0.22, 1.0));',
+'      vColor = mix(shellCol, coverColor, 0.26) * (0.82 + flash * 1.15 + sparkle * 0.28);',
+'      vAlpha = alive * fade * (0.50 + flash * 0.55 + sparkle * 0.26) * (0.72 + uTreble * 0.34);',
+'      vPack1.w = 0.85 + flash * 1.05 + sparkle * 0.16;',
+'      maxRippleAmp = max(maxRippleAmp, uBass * 0.11 + uBeat * 0.10 + flash * 0.22);',
+'    }',
+'  }',
+
+    // ============================================================
+    //  桌面 19 / uEff 16 — 蝶舞
+    //  蝴蝶曲线成翼 · 扑翼飞行 · 利萨如轨迹
+    // ============================================================
+'  else if (uEff < 16.5) {',
+'    float bid = floor(aUv.x * BF_COUNT);',
+'    float p1 = hash11(bid * 0.731 + 0.171);',
+'    float p2 = hash11(bid * 0.617 + 0.533);',
+'    float p3 = hash11(bid * 0.913 + 0.297);',
+'    float p4 = hash11(bid * 0.571 + 0.819);',
+'    float bT = t * (0.16 + p1 * 0.10) + p2 * 6.2831853;',
+'    vec3 c0 = bfPath(bT, p1, p3, p4);',
+'    vec3 c1 = bfPath(bT + 0.06, p1, p3, p4);',
+'    vec3 fwd = c1 - c0;',
+'    fwd = (length(fwd) > 0.0001) ? normalize(fwd) : vec3(0.0, 0.0, 1.0);',
+'    vec3 right = cross(fwd, vec3(0.0, 1.0, 0.0));',
+'    right = (length(right) < 0.001) ? vec3(1.0, 0.0, 0.0) : normalize(right);',
+'    vec3 trueUp = normalize(cross(right, fwd));',
+'    float flap = sin(t * BF_FLAP + p1 * 6.2831853);',
+'    float flapAng = flap * 0.98;',
+'    float isBody = step(aUv.y, BF_BODY_SHARE);',
+'    vec3 local;',
+'    float wingFill;',
+'    if (isBody > 0.5) {',
+'      float bv = (fract(aUv.y / BF_BODY_SHARE) - 0.5) * 2.0;',
+'      local = fwd * (bv * 0.34)',
+'           + right * ((hash11(aRand * 311.7) - 0.5) * 0.07)',
+'           + trueUp * ((hash11(aRand * 197.3) - 0.5) * 0.07);',
+'      wingFill = 1.0 - abs(bv) * 0.5;',
+'    } else {',
+'      float th = fract((aUv.y - BF_BODY_SHARE) / (1.0 - BF_BODY_SHARE)) * 6.2831853;',
+'      float ss = sin((2.0 * th - 3.14159265) / 24.0);',
+'      float rr = exp(sin(th)) - 2.0 * cos(4.0 * th) + ss * ss * ss * ss * ss;',
+'      wingFill = sqrt(hash11(aRand * 89.3 + 0.90));',
+'      float u = sin(th) * rr * wingFill;',
+'      float v = cos(th) * rr * wingFill;',
+'      local = right * (u * cos(flapAng)) + trueUp * (u * sin(flapAng)) + fwd * (v * 0.52);',
+'    }',
+'    pos = c0 + local * BF_SCALE + trueUp * (0.06 * flap * flap);',
+'    vec3 bfCol = hsv2rgb(vec3(fract(p2 * 0.61 + 0.06), 0.52 + p3 * 0.26, 1.0));',
+'    float flapGlow = 0.55 + 0.45 * abs(flap);',
+'    vColor = mix(bfCol, coverColor, 0.18) * (0.78 + (1.0 - wingFill) * 0.34) * flapGlow;',
+'    vAlpha = (0.42 + (1.0 - wingFill) * 0.42 + isBody * 0.30) * (0.80 + uMid * 0.22) * flapGlow;',
+'    vPack1.w = 0.60 + (1.0 - wingFill) * 0.55 + flapGlow * 0.16;',
+'    maxRippleAmp = max(maxRippleAmp, uMid * 0.05 + uBeat * 0.06);',
+'  }',
+
+    // ============================================================
+    //  桌面 20 / uEff 17 — 旋转木马
+    //  条纹伞盖 · 心形坐骑绕圈起伏 · 边缘灯泡闪烁 · 糖果螺旋柱
+    // ============================================================
+'  else {',
+'    float crR1 = hash11(aRand * 941.1 + 0.70);',
+'    float crR2 = hash11(aRand * 337.3 + 3.30);',
+'    float crR3 = hash11(aRand * 173.9 + 8.10);',
+'    float ca = cos(CR_TILT), sa = sin(CR_TILT);',
+'    float spin = t * CR_SPEED;',
+'    float band = aUv.y;',
+'    vec3 std;',
+'    vec3 extra = vec3(0.0);',
+'    vec3 crCol;',
+'    float crAlpha = 0.50;',
+'    float crSize = 1.0;',
+'    if (band < 0.34) {',
+'      float cu = pow(aUv.x, 0.62);',
+'      float cth = fract(aUv.y / 0.34) * 6.2831853 + spin;',
+'      float rr = cu * CR_R;',
+'      float hh = CR_TOP_Y + CR_CONE * pow(1.0 - cu, 1.25);',
+'      std = vec3(cos(cth) * rr, hh, sin(cth) * rr);',
+'      float stripe = mod(floor(cth / 6.2831853 * 16.0), 2.0);',
+'      crCol = mix(vec3(1.00, 0.66, 0.78), vec3(0.99, 0.96, 0.90), stripe);',
+'      crCol = mix(crCol, vec3(1.00, 0.88, 0.58), pow(1.0 - cu, 3.0) * 0.55);',
+'      crAlpha = 0.40 + 0.34 * (1.0 - cu);',
+'      crSize = 0.70 + (1.0 - cu) * 0.35;',
+'    } else if (band < 0.40) {',
+'      float bth = fract((aUv.y - 0.34) / 0.06) * 6.2831853 + spin;',
+'      std = vec3(cos(bth) * CR_R, CR_TOP_Y - 0.04, sin(bth) * CR_R);',
+'      float blink = 0.40 + 0.60 * pow(max(0.0, sin(t * 2.7 + bth * 4.0)), 3.0);',
+'      crCol = vec3(1.00, 0.90, 0.55) * (0.60 + blink * 0.70);',
+'      crAlpha = 0.50 + blink * 0.55;',
+'      crSize = 0.95 + blink * 0.85;',
+'    } else if (band < 0.46) {',
+'      float pv = fract((aUv.y - 0.40) / 0.06);',
+'      float pth = crR1 * 6.2831853;',
+'      float pr = 0.105 + (crR2 - 0.5) * 0.045;',
+'      float colY = mix(CR_BASE_Y, CR_TOP_Y + CR_CONE * 0.90, pv);',
+'      std = vec3(cos(pth) * pr, colY, sin(pth) * pr);',
+'      float helix = mod(floor(pth / 6.2831853 * 3.0 + pv * 7.0), 2.0);',
+'      crCol = mix(vec3(1.00, 0.58, 0.70), vec3(1.00, 0.98, 0.94), helix);',
+'      float lyricBand = 1.0 - smoothstep(0.30, 1.00, abs(colY - 0.25));',
+'      crAlpha = 0.52 * mix(1.0, 0.28, lyricBand);',
+'      crSize = 0.56;',
+'    } else if (band < 0.52) {',
+'      float dr = CR_R * mix(0.70, 1.02, aUv.x);',
+'      float dth = fract((aUv.y - 0.46) / 0.06) * 6.2831853 + spin;',
+'      std = vec3(cos(dth) * dr, CR_BASE_Y + (crR3 - 0.5) * 0.07, sin(dth) * dr);',
+'      crCol = mix(vec3(1.00, 0.84, 0.48), vec3(1.00, 0.96, 0.84), crR2);',
+'      crAlpha = 0.56;',
+'      crSize = 0.68;',
+'    } else if (band < 0.94) {',
+'      float rv = fract((aUv.y - 0.52) / 0.42);',
+'      float rid = floor(rv * CR_RIDERS);',
+'      float rth = (rid / CR_RIDERS) * 6.2831853 + spin;',
+'      float bob = sin(t * 1.9 + rid * 0.85) * (0.24 + uBass * 0.16);',
+'      std = vec3(cos(rth) * CR_R * 0.72, CR_BASE_Y + 0.72 + bob, sin(rth) * CR_R * 0.72);',
+'      float ht2 = aUv.x * 6.2831853;',
+'      float s1 = sin(ht2);',
+'      float hx = 16.0 * s1 * s1 * s1;',
+'      float hy = 13.0 * cos(ht2) - 5.0 * cos(2.0 * ht2) - 2.0 * cos(3.0 * ht2) - cos(4.0 * ht2);',
+'      float hfill = sqrt(crR3);',
+'      extra = vec3(hx + (crR2 - 0.5) * 4.0, hy + (crR1 - 0.5) * 2.0, 0.0) * 0.040 * hfill;',
+'      crCol = mix(vec3(1.00, 0.40, 0.62), vec3(1.00, 0.80, 0.88), 1.0 - hfill);',
+'      crAlpha = 0.52 + 0.38 * (1.0 - hfill);',
+'      crSize = 0.66 + (1.0 - hfill) * 0.40;',
+'    } else {',
+'      float gy2 = fract(uGalaxyAge * 0.11 + crR1 * 3.70);',
+'      std = vec3((crR1 - 0.5) * 9.5, mix(-3.2, 3.8, gy2), (crR2 - 0.5) * 3.4);',
+'      float tw2 = 0.5 + 0.5 * sin(t * (1.3 + crR3 * 2.3) + aRand * 6.2831853);',
+'      crCol = mix(vec3(1.00, 0.93, 0.74), vec3(0.86, 0.95, 1.00), crR3);',
+'      crAlpha = 0.12 + tw2 * 0.22;',
+'      crSize = 0.55 + tw2 * 0.45;',
+'    }',
+'    vec3 p = vec3(std.x, std.y * ca - std.z * sa, std.y * sa + std.z * ca);',
+'    pos = p + extra;',
+'    vColor = mix(crCol, coverColor, 0.14) * (0.90 + uBass * 0.14);',
+'    vAlpha = crAlpha * (0.86 + uMid * 0.16);',
+'    vPack1.w = crSize;',
+'    maxRippleAmp = max(maxRippleAmp, uBass * 0.05 + uBeat * 0.05);',
 '  }'
   ].join('\n');
 
@@ -637,8 +863,14 @@
     '      vBright = 1.18 + maxRippleAmp * 0.50 + uBass * 0.06 + uEnergy * 0.04;',
     '    } else if (uPreset > 15.5 && uPreset < 16.5) {',
     '      vBright = 1.12 + maxRippleAmp * 0.50 + uBass * 0.06 + uBeat * 0.10;',
-    '    } else if (uPreset > 16.5) {',
+    '    } else if (uPreset > 16.5 && uPreset < 17.5) {',
     '      vBright = 1.35 + maxRippleAmp * 0.40 + uBass * 0.06 + uEnergy * 0.05;',
+    '    } else if (uPreset > 17.5 && uPreset < 18.5) {',
+    '      vBright = 1.10 + maxRippleAmp * 0.85 + uBass * 0.07 + uBeat * 0.14 + uBurstAmt * 0.30;',
+    '    } else if (uPreset > 18.5 && uPreset < 19.5) {',
+    '      vBright = 0.96 + maxRippleAmp * 0.50 + uBass * 0.05 + uMid * 0.09;',
+    '    } else if (uPreset > 19.5) {',
+    '      vBright = 1.06 + maxRippleAmp * 0.48 + uBass * 0.07 + uMid * 0.05 + uBeat * 0.07;',
     '    }',
     '  } else if (uPreset > 4.5) {'
   ].join('\n');
@@ -657,8 +889,14 @@
     '    sz = clamp(depthSize * 0.44 * (1.0 + uBass * 0.10 + uMid * 0.06), 0.40, 1.85);',
     '  } else if (uPreset > 15.5 && uPreset < 16.5) {',
     '    sz = clamp(depthSize * vPack1.w * (1.0 + uBass * 0.10 + uBeat * 0.06), 0.30, 3.20);',
-    '  } else if (uPreset > 16.5) {',
+    '  } else if (uPreset > 16.5 && uPreset < 17.5) {',
     '    sz = clamp(depthSize * 3.5 * (1.0 + uBass * 0.08), 6.00, 16.00);',
+    '  } else if (uPreset > 17.5 && uPreset < 18.5) {',
+    '    sz = clamp(depthSize * vPack1.w * (1.0 + uBass * 0.10), 0.60, 6.50);',
+    '  } else if (uPreset > 18.5 && uPreset < 19.5) {',
+    '    sz = clamp(depthSize * 0.62 * vPack1.w * (1.0 + uBass * 0.10), 0.50, 3.40);',
+    '  } else if (uPreset > 19.5) {',
+    '    sz = clamp(depthSize * 0.62 * vPack1.w * (1.0 + uBass * 0.10 + uBeat * 0.06), 0.45, 3.60);',
     '  } else if (uPreset > 11.5) {',
     '    sz = clamp(depthSize * 0.52 * (1.0 + uTreble * 0.12), 0.62, 2.30);',
     '  } else if (uPreset > 8.5) {',
@@ -756,6 +994,21 @@
     } else if (webIdx > 9.5 && webIdx < 10.5) {
       mid = Math.min(1.0, mid * 1.26);
       bass = Math.min(0.62, bass * 0.84);
+    }     else if (webIdx > 16.5) {
+      // 20 旋转木马：低频驱动坐骑起伏，中频维持灯泡律动
+      bass = Math.min(1.0, bass * 1.20);
+      mid = Math.min(0.95, mid * 1.10);
+      treble = Math.min(0.70, treble * 0.85);
+    } else if (webIdx > 15.5) {
+      // 19 蝶舞：中频驱动扑翼节奏，低频轻推
+      bass = Math.min(0.85, bass * 0.95);
+      mid = Math.min(1.0, mid * 1.30);
+      treble = Math.min(0.90, treble * 1.05);
+    } else if (webIdx > 14.5) {
+      // 18 烟花：低频驱动爆炸半径，高频驱动火花闪烁
+      bass = Math.min(1.0, bass * 1.18);
+      treble = Math.min(1.0, treble * 1.26);
+      mid = Math.min(0.85, mid * 0.96);
     } else if (webIdx > 10.5) {
       mid = Math.min(0.95, mid * 1.10);
       bass = Math.min(0.60, bass * 0.88);

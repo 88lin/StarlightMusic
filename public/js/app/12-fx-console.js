@@ -342,7 +342,7 @@ var presetDisplayOrder = [0, 6, 7, 8, 5, 4, 2, 1, 3, 9, 10, 11, 12, 13, 14, 15, 
  * 分发器全部自动接入。hotkeySettings 读取发生在 01-state.js（本文件之前），所以
  * 注册后要给 hotkeySettings 补默认值，否则新动作的默认绑定匹配不到。
  */
-var PRESET_HOTKEY_KEYS = ['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP','KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK'];
+var PRESET_HOTKEY_KEYS = ['KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP','KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL','KeyZ'];
 (function registerPresetHotkeyActions() {
   if (typeof HOTKEY_ACTIONS === 'undefined' || !Array.isArray(HOTKEY_ACTIONS)) return;
   for (var i = 0; i < presetMeta.length; i++) {
@@ -1447,7 +1447,7 @@ function buildPresetGrid() {
     var desc = p.descHtml || p.desc;
     return '<div class="preset-card" data-preset="' + i + '" onclick="setPreset(' + i + ')">' +
       '<div class="pc-icon">' + presetIcons[i] + '</div>' +
-      '<div class="pc-name">' + p.name + '</div>' +
+      '<div class="pc-name">' + (p.nameHtml || p.name) + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       presetHotkeyBadge(i) +
     '</div>';

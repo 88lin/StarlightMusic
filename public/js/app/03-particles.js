@@ -739,7 +739,7 @@ void main(){
   }
   vec3 col = vColor * vBright;
   float spriteAlpha;
-  if (uPreset > 16.5) {
+  if (uPreset > 16.5 && uPreset < 17.5) {
     float g = clamp(vPack1.w, 0.0, 80.0);
     float gx = mod(g, 9.0);
     float gy = floor(g / 9.0);
@@ -748,6 +748,14 @@ void main(){
     spriteAlpha = tex.a;
     if (spriteAlpha < 0.02) discard;
     col = mix(col, col * 1.3 + vec3(0.04), vRipple * 0.35);
+  } else if (uPreset > 17.5) {
+    // 18 烟花 / 19 熔岩 / 20 黑洞 — 发光类预设：柔光圆点 + 亮核
+    float d = distance(gl_PointCoord, vec2(0.5));
+    spriteAlpha = pow(max(0.0, 1.0 - d), 2.2);
+    if (spriteAlpha < 0.004) discard;
+    float hotCore = pow(max(0.0, 1.0 - d * 1.85), 3.0);
+    col = mix(col, col * 1.30 + vec3(0.05), vRipple * 0.30);
+    col += hotCore * 0.22;
   } else if (uPreset > 13.5) {
     float d = distance(gl_PointCoord, vec2(0.5));
     spriteAlpha = pow(max(0.0, 1.0 - d), 2.6);
@@ -805,7 +813,7 @@ varying vec4 vPack1;
 
 void main(){
   float soft;
-  if (uPreset > 13.5 && uPreset < 16.5) {
+  if ((uPreset > 13.5 && uPreset < 16.5) || uPreset > 17.5) {
     float d = distance(gl_PointCoord, vec2(0.5));
     soft = pow(max(0.0, 1.0 - d), 2.6);
     if (soft < 0.004) discard;
@@ -825,7 +833,7 @@ void main(){
   float keepBlack = 1.0 - smoothstep(0.025, 0.115, vSourceLum);
   float bloomKeep = 1.0 - keepBlack * 0.92;
   bloomKeep *= 1.0 - vMeteor * 0.92;
-  bloomKeep *= 1.0 - step(16.5, uPreset);
+  bloomKeep *= 1.0 - (step(16.5, uPreset) - step(17.5, uPreset));
   gl_FragColor = vec4(col, soft * uAlpha * uBloomStrength * uParticleDim * pulse * 0.55 * vAlpha * bloomKeep);
 }
 `;
