@@ -1196,6 +1196,10 @@ body.desktop-shell.diy-mode #bottom-bar.stage-mode{left:50%;width:min(1080px,cal
 .preset-card.active .pc-icon{color:var(--fc-accent)}
 .preset-card .pc-name{font-size:13px;font-weight:700;color:rgba(255,255,255,.92);letter-spacing:.3px}
 .preset-card .pc-desc{font-size:10px;color:rgba(255,255,255,.44);margin-top:4px;letter-spacing:.3px;line-height:1.35}
+/* 预设快捷键角标（12-fx-console.js · presetHotkeyBadge 渲染） */
+.preset-card .pc-kbd{position:absolute;top:8px;left:8px;z-index:2;font-size:9px;line-height:1;padding:3px 6px;border-radius:5px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55);letter-spacing:.4px;font-weight:600;pointer-events:none;backdrop-filter:blur(2px)}
+.preset-card .pc-kbd:empty{display:none}
+.preset-card.active .pc-kbd{background:rgba(0,245,212,.1);border-color:rgba(0,245,212,.28);color:rgba(0,245,212,.85)}
 .preset-card.active .pc-name{color:#fff}
 .preset-card[data-preset="6"] .pc-name,
 .preset-card[data-preset="6"] .pc-desc{font-family:"黑体","SimHei","Microsoft YaHei","Noto Sans SC",Arial,sans-serif;font-weight:800;letter-spacing:.4px}

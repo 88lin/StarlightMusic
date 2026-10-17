@@ -128,6 +128,11 @@ function isModifierKeyCode(code) {
 function normalizeHotkeyEvent(e) {
   if (!e || isModifierKeyCode(e.code)) return '';
   var mods = [];
+  // Fn 仅 macOS 的 Chromium 可检测（Windows 的 Fn 由键盘固件消费，浏览器看不到）。
+  // 想用 Fn+Q 切预设的 mac 用户可在热键设置里改绑；Windows 上录键永远录不到 Fn，不会误配。
+  var fnHeld = false;
+  try { fnHeld = !!(e.getModifierState && e.getModifierState('Fn')); } catch (err) {}
+  if (fnHeld) mods.push('Fn');
   if (e.ctrlKey) mods.push('Ctrl');
   if (e.altKey) mods.push('Alt');
   if (e.shiftKey) mods.push('Shift');
@@ -142,6 +147,7 @@ function hotkeyDisplayPart(part) {
   if (part === 'Alt') return 'Alt';
   if (part === 'Shift') return 'Shift';
   if (part === 'Meta') return 'Win';
+  if (part === 'Fn') return 'Fn';
   if (part === 'Space') return 'Space';
   if (part === 'ArrowLeft') return 'Left';
   if (part === 'ArrowRight') return 'Right';
@@ -160,6 +166,8 @@ function formatHotkey(hotkey) {
 function hotkeyToAccelerator(hotkey) {
   var parts = String(hotkey || '').split('+').filter(Boolean);
   if (!parts.length) return '';
+  // Electron accelerator 无 Fn 键（系统级也读不到它）——含 Fn 的绑定只做应用内热键
+  if (parts.indexOf('Fn') >= 0) return '';
   return parts.map(function(part){
     if (part === 'Ctrl') return 'Control';
     if (part === 'Alt') return 'Alt';
@@ -193,6 +201,16 @@ function executeHotkeyAction(actionKey, source) {
   if (actionKey === 'volumeDown') return adjustVolumeByKeyboard(-0.05);
   if (actionKey === 'toggleFullscreen') return toggleFullscreen();
   if (actionKey === 'toggleDesktopLyrics') return toggleFx('desktopLyrics');
+  // 视觉预设快捷键：preset0..presetN（12-fx-console.js 动态注册）
+  var presetMatch = /^preset(\d+)$/.exec(actionKey);
+  if (presetMatch) {
+    var presetIdx = Number(presetMatch[1]);
+    if (typeof presetMeta !== 'undefined' && presetMeta[presetIdx]
+        && typeof setPreset === 'function') {
+      return setPreset(presetIdx);
+    }
+    return;
+  }
 }
 function handleConfiguredLocalHotkey(e) {
   if (!hotkeySettings || !hotkeySettings.local || isTypingTarget(e.target)) return false;
@@ -351,6 +369,10 @@ function setHotkeyBinding(action, scope, value) {
   hotkeySettings[scope][action] = value || '';
   saveHotkeySettings();
   renderHotkeySettings();
+  // 预设卡片角标同步刷新（preset* 动作改绑后）
+  if (/^preset\d+$/.test(String(action)) && typeof buildPresetGrid === 'function') {
+    try { buildPresetGrid(); } catch (e) {}
+  }
   if (scope === 'global') registerGlobalHotkeys();
 }
 function resetHotkeyBinding(action, scope) {
