@@ -32,27 +32,21 @@ jobs:
 
       - name: Build (Windows NSIS)
         if: runner.os == 'Windows'
-        run: npm run build:win
+        run: npm run build:win -- --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EP_PUBLISH: never
-          ELECTRON_BUILDER_PUBLISH: never
 
       - name: Build (macOS arm64)
         if: matrix.os == 'macos-latest'
-        run: npm run build:mac
+        run: npm run build:mac -- --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EP_PUBLISH: never
-          ELECTRON_BUILDER_PUBLISH: never
 
       - name: Build (macOS x64)
         if: matrix.os == 'macos-13'
-        run: npm run build:mac:x64
+        run: npm run build:mac:x64 -- --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EP_PUBLISH: never
-          ELECTRON_BUILDER_PUBLISH: never
 
       - name: Resolve release tag
         id: tag
