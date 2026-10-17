@@ -503,6 +503,8 @@
     "963327b076c1f0ac": 1,
     "ae1406074e69e7d8": 1,
     "355460f9153b8540": 1,
+    "95df716ce131ae5e": 1,
+    "1a7b65e4e87b8838": 1,
     "d9518798f1ba4eff": 1,
     "71960c822261fb92": 1,
     "fe860f4f1d79bf17": 1,
@@ -1549,6 +1551,7 @@
     "57def8d7d1ff0152": 1,
     "c489baea81d4aa49": 1,
     "b4e6d965ca713b03": 1,
+    "aa8f72fbef78ce36": 1,
     "a54980502e7088a5": 1,
     "dc054f5b588d8538": 1,
     "e269733279b101a9": 1,
@@ -2150,6 +2153,7 @@
     },
     "Array": {
       "561de33e128a2394": false,
+      "1a7b65e4e87b8838": false,
       "11a52bbbe5123731": false,
       "4f093cd6a1f62598": false,
       "5624be9892e126d8": false,
@@ -2840,6 +2844,7 @@
     },
     "HOTKEY_ACTIONS": {
       "98b23f594aac5b42": true,
+      "1a7b65e4e87b8838": true,
       "61787d62eeccee3f": true
     },
     "HOTKEY_SETTINGS_STORE_KEY": {
@@ -3670,6 +3675,7 @@
     },
     "presetMeta": {
       "69155c38cef68dc5": true,
+      "1a7b65e4e87b8838": true,
       "d9518798f1ba4eff": true,
       "11a52bbbe5123731": true,
       "ed7fe9ee51fbe9a5": true,
@@ -3689,6 +3695,18 @@
     },
     "wfic": {
       "ae1406074e69e7d8": false
+    },
+    "PRESET_HOTKEY_KEYS": {
+      "1a7b65e4e87b8838": true
+    },
+    "hotkeySettings": {
+      "1a7b65e4e87b8838": true,
+      "61787d62eeccee3f": true
+    },
+    "undefined": {
+      "1a7b65e4e87b8838": false,
+      "5624be9892e126d8": false,
+      "40aae9d97b64df31": false
     },
     "USER_FX_ARCHIVE_STORE_KEY": {
       "5f4e4ba37323b978": true,
@@ -5135,10 +5153,6 @@
       "9503d2715a8b28b2": false,
       "40aae9d97b64df31": false
     },
-    "undefined": {
-      "5624be9892e126d8": false,
-      "40aae9d97b64df31": false
-    },
     "unlockCenteredView": {
       "5624be9892e126d8": false,
       "40aae9d97b64df31": false
@@ -5346,9 +5360,6 @@
     "hotkeyGlobalStatus": {
       "61787d62eeccee3f": true
     },
-    "hotkeySettings": {
-      "61787d62eeccee3f": true
-    },
     "hotkeyStatusMarkup": {
       "61787d62eeccee3f": false
     },
@@ -5419,6 +5430,9 @@
     },
     "presetDisplayOrder": {
       "61787d62eeccee3f": true
+    },
+    "presetHotkeyBadge": {
+      "61787d62eeccee3f": false
     },
     "readSavedAudioOutputId": {
       "61787d62eeccee3f": false
