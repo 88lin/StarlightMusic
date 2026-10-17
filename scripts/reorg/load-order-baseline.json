@@ -1948,6 +1948,7 @@
     "a8edaf40129f5496": 1,
     "938cd73bcf065007": 1,
     "d8396012a57cf3fd": 1,
+    "001771a0fe79a64c": 1,
     "b0584ed7d4c5dfa6": 1
   },
   "obs": {
@@ -3339,16 +3340,20 @@
       "bac6bfae01c8275c": false
     },
     "applyRendererPowerMode": {
-      "59402ec31f8fea93": false
+      "59402ec31f8fea93": false,
+      "48d43e1c74a26e76": false
     },
     "backgroundCacheTrimTimer": {
-      "59402ec31f8fea93": true
+      "59402ec31f8fea93": true,
+      "48d43e1c74a26e76": true
     },
     "renderPowerState": {
-      "59402ec31f8fea93": true
+      "59402ec31f8fea93": true,
+      "48d43e1c74a26e76": true
     },
     "scheduleBackgroundCacheTrim": {
-      "59402ec31f8fea93": false
+      "59402ec31f8fea93": false,
+      "48d43e1c74a26e76": false
     },
     "fs": {
       "867516aff57e0bf7": true
@@ -6684,6 +6689,9 @@
       "48d43e1c74a26e76": true
     },
     "ensureHomeWaveTrackBars": {
+      "48d43e1c74a26e76": false
+    },
+    "ensureViewportInSync": {
       "48d43e1c74a26e76": false
     },
     "expireParkedLyricLines": {

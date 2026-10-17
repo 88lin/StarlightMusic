@@ -932,6 +932,20 @@ function sampleRenderPerf(now, dt) {
   }
   maybeTrimRuntimeCaches(now);
 }
+// 每帧视口一致性守卫（见 animate 内调用点注释）
+function ensureViewportInSync() {
+  var w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
+  var wantAspect = w / h;
+  if (camera && Math.abs(camera.aspect - wantAspect) > 0.002) {
+    camera.aspect = wantAspect;
+    camera.updateProjectionMatrix();
+  }
+  var size = renderer.getSize(new THREE.Vector2());
+  if (Math.abs(size.x - w) > 2 || Math.abs(size.y - h) > 2) {
+    renderer.setSize(w, h, false);
+    if (typeof applyRendererPowerMode === 'function') applyRendererPowerMode();
+  }
+}
 function animate() {
   requestAnimationFrame(animate);
   var now = performance.now();
@@ -939,6 +953,11 @@ function animate() {
   var dt = Math.min((now - prevTime) / 1000, 0.05);
   prevTime = now;
   sampleRenderPerf(now, dt);
+  // 视口守卫：aspect/画布尺寸与实际视口不一致（DPI 变化、最大化时序、休眠恢复等
+  // 场景下 resize 事件可能丢失）会导致整个 3D 场景放大偏移——用户实测表现为
+  // 封面流/歌单架溢出屏幕右缘、歌词被推出左缘裁切。每帧校验，偏差即校正。
+  // （IIFE 在此立即执行会让加载期读取点变化触发 reorg 闸门，改为函数声明。）
+  if (typeof ensureViewportInSync === 'function') ensureViewportInSync();
   uniforms.uTime.value += dt;
   if (isMainSceneCoveredBySplash()) {
     if (now - splashWarmRenderLast > 520) {
