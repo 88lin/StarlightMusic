@@ -23,7 +23,7 @@ StarlightMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成�
 
 ## 🌌 粒子视觉效果
 
-播放态共 18 个视觉预设，右键唤出「视觉控制台」即可切换、搜索与收藏；全部效果由 GLSL 粒子着色器实时驱动，随音乐节拍与频谱联动：
+播放态共 21 个视觉预设，右键唤出「视觉控制台」即可切换、搜索与收藏；全部效果由 GLSL 粒子着色器实时驱动，随音乐节拍与频谱联动：
 
 | | | |
 |:---:|:---:|:---:|
@@ -33,6 +33,7 @@ StarlightMusic 是一款沉浸式桌面音乐播放器，把「听歌」做成�
 | ![](docs/screenshots/11-aurora.jpg)<br>**极光** | ![](docs/screenshots/12-kaleido.jpg)<br>**万花筒** | ![](docs/screenshots/13-burst.jpg)<br>**迸发** |
 | ![](docs/screenshots/14-sonic.png)<br>**声波地形** | ![](docs/screenshots/15-spiral.jpg)<br>**螺旋星云** | ![](docs/screenshots/16-jelly.jpg)<br>**水母花** |
 | ![](docs/screenshots/17-rose.jpg)<br>**玫瑰** | ![](docs/screenshots/18-heart.jpg)<br>**心跳** | ![](docs/screenshots/19-rain.png)<br>**字符雨** |
+| **烟花盛放**<br>多弹爆散 · 拖尾下坠 | **蝶舞**<br>扑翼飞行 · 曲线成翼 | **旋转木马**<br>心形坐骑 · 伞盖旋转 |
 
 ## 立即下载
 
