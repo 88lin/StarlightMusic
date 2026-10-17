@@ -131,11 +131,18 @@ function shelfLayoutProfile() {
   var narrow = !portrait && innerWidth < 980;
   var skullShelf = shouldUseSkullSafeShelfCamera();
   var detailScale = portrait ? clampRange(innerWidth / 820, 0.70, 0.86) : (narrow ? 0.92 : 1.04);
+  // 视口收缩守卫：卡片半宽（2.05×sideScale/2）×层数若超出半视宽（tan(fov/2)×z×aspect），
+  // 桌面档位的 sideX/sideScale 会把右列卡片推出屏幕——用户实测"歌单架被放很大、溢出右缘"。
+  // 按可用半视宽对桌面档位线性降档（world 单位下 aspect=w/h，相机 fov/2 决定半视高≈z，半视宽≈z×aspect）。
   var shelfCtl = shelfSettings();
+  var deskWide = !portrait && !narrow;
+  var halfViewW = 4.9 * (innerWidth / Math.max(1, innerHeight)); // 近似半视宽（含边距余量）
+  var needW = 1.03 + 2.05 * (deskWide ? 1.22 : 1);              // sideX + 一张放大卡片半宽
+  var squeeze = deskWide && needW > halfViewW ? clampRange(halfViewW / needW, 0.62, 1) : 1;
   return {
     portrait: portrait,
     narrow: narrow,
-    sideX: (skullShelf ? (portrait ? 0.22 : (narrow ? 0.46 : 0.76)) : (portrait ? 1.56 : (narrow ? 2.48 : 3.18))) + shelfCtl.x,
+    sideX: (skullShelf ? (portrait ? 0.22 : (narrow ? 0.46 : 0.76)) : (portrait ? 1.56 : (narrow ? 2.48 : 3.18))) * squeeze + shelfCtl.x,
     sideY: (skullShelf ? (portrait ? -0.22 : (narrow ? -0.30 : -0.34)) : 0) + shelfCtl.y,
     sideXStep: skullShelf ? (portrait ? 0.018 : 0.034) : (portrait ? 0.018 : 0.040),
     sideYStep: skullShelf ? (portrait ? 0.46 : 0.62) : (portrait ? 0.52 : 0.68),
@@ -143,7 +150,7 @@ function shelfLayoutProfile() {
     sideZStep: skullShelf ? (portrait ? 0.108 : 0.158) : (portrait ? 0.118 : 0.170),
     sideEntryX: skullShelf ? (portrait ? 0.30 : 0.50) : (portrait ? 0.38 : 0.82),
     sideDetailShift: skullShelf ? (portrait ? 0.00 : 0.00) : (portrait ? 0.38 : 0.82),
-    sideScale: (skullShelf ? (portrait ? 0.84 : (narrow ? 1.04 : 1.22)) : (portrait ? 0.70 : (narrow ? 0.86 : 1))) * shelfCtl.size,
+    sideScale: (skullShelf ? (portrait ? 0.84 : (narrow ? 1.04 : 1.22)) : (portrait ? 0.70 : (narrow ? 0.86 : 1))) * shelfCtl.size * squeeze,
     sideRotY: (skullShelf ? (portrait ? -0.085 : -0.190) : 0) + shelfCtl.angle,
     sideRotX: skullShelf ? (portrait ? 0.018 : 0.030) : 0,
     stageX: shelfCtl.x,
@@ -152,7 +159,7 @@ function shelfLayoutProfile() {
     stageZ: (portrait ? 0.84 : 1.0) + shelfCtl.z,
     stageScale: (portrait ? 0.72 : (narrow ? 0.86 : 1)) * shelfCtl.size,
     detail: {
-      x: (skullShelf ? (portrait ? 0.16 : (narrow ? 0.40 : 0.64)) : (portrait ? 0.38 : (narrow ? 0.96 : 1.28))) + shelfCtl.x * 0.62,
+      x: (skullShelf ? (portrait ? 0.16 : (narrow ? 0.40 : 0.64)) : (portrait ? 0.38 : (narrow ? 0.96 : 1.28))) * squeeze + shelfCtl.x * 0.62,
       y: (skullShelf ? (portrait ? -0.40 : -0.68) : (portrait ? 0.10 : 0.18)) + shelfCtl.y * 0.55,
       z: (skullShelf ? (portrait ? 1.10 : 1.22) : (portrait ? 1.28 : 1.36)) + shelfCtl.z * 0.45,
       rx: skullShelf ? (portrait ? 0.006 : 0.014) : (portrait ? -0.004 : -0.008),
@@ -416,14 +423,21 @@ function makeShelfManager() {
   function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
     var chars = String(text || '').split('');
     var line = '', lines = [];
+    var truncated = false;
     for (var i = 0; i < chars.length; i++) {
       var test = line + chars[i];
       if (ctx.measureText(test).width > maxWidth && line) {
+        if (lines.length >= maxLines - 1) { truncated = true; break; }
         lines.push(line); line = chars[i];
-        if (lines.length >= maxLines - 1) break;
       } else line = test;
     }
-    if (line && lines.length < maxLines) lines.push(line);
+    if (truncated && lines.length) {
+      // 末行留 1 字符宽放省略号，防止长标题丢字后看不出被截断
+      var ell = '…';
+      var last = lines[lines.length - 1];
+      while (last && ctx.measureText(last + ell).width > maxWidth) last = last.slice(0, -1);
+      lines[lines.length - 1] = last + ell;
+    } else if (line && lines.length < maxLines) lines.push(line);
     for (var j = 0; j < lines.length; j++) ctx.fillText(lines[j], x, y + j * lineHeight);
   }
   function cardDrawSignature(card, item) {

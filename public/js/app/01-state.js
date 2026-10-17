@@ -1107,6 +1107,11 @@ function applyRendererPowerMode() {
   renderPowerState = { mode: mode, width: width, height: height, pixelRatio: pixelRatio };
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(width, height, false);
+  // 从深度后台 4x4 恢复时同步相机纵横比，否则恢复瞬间场景按错误比例定位（歌词/卡片错位）
+  if (!deep && typeof camera !== 'undefined' && camera && camera.isPerspectiveCamera) {
+    var wantAspect = width / height;
+    if (Math.abs(camera.aspect - wantAspect) > 0.002) { camera.aspect = wantAspect; camera.updateProjectionMatrix(); }
+  }
   if (typeof uniforms !== 'undefined' && uniforms && uniforms.uPixel) uniforms.uPixel.value = renderer.getPixelRatio();
   if (deep) {
     if (renderer.renderLists && renderer.renderLists.dispose) renderer.renderLists.dispose();
