@@ -12,6 +12,15 @@ try { fs.mkdirSync(path.dirname(OUT), { recursive: true }); } catch (e) {}
 const LOG = [];
 function LOGLINE(s) { LOG.push(s); try { fs.writeFileSync(OUT, JSON.stringify(LOG, null, 2)); } catch (e) {} }
 
+// 运行姿势守卫：直调 node 时 require('electron') 只返回二进制路径字符串，
+// app 为 undefined，会在这里抛出毫无指向性的 TypeError
+if (!process.versions.electron) {
+  console.error('[probe] 此探针须在 Electron 运行时执行，例如：');
+  console.error('  ./node_modules/electron/dist/electron scripts/' + path.basename(__filename));
+  console.error('  或统一跑全部探针：node scripts/probe-ui-all.js');
+  process.exit(1);
+}
+
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('in-process-gpu');
