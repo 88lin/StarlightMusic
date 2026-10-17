@@ -123,23 +123,22 @@ const LOCAL_FAST_LOGIN_DOMAINS = [
 // 在应用启动前设置 Chromium 命令行参数，优化音视频播放和渲染性能
 const CHROMIUM_PERFORMANCE_SWITCHES = [
   ['autoplay-policy', 'no-user-gesture-required'], // 允许自动播放音频，无需用户交互
-  ['ignore-gpu-blocklist'],                         // 忽略 GPU 黑名单，强制使用硬件加速
-  ['enable-gpu-rasterization'],                     // 启用 GPU 光栅化
-  ['enable-oop-rasterization'],                     // 启用进程外光栅化（更稳定）
-  ['enable-zero-copy'],                             // 启用零拷贝纹理共享（减少内存拷贝）
+  // ⚠️ v2.3.2 起移除 ignore-gpu-blocklist / force_high_performance_gpu /
+  //     enable-gpu-rasterization / enable-oop-rasterization / enable-zero-copy：
+  //     老旧 Intel 核显被 Chromium blocklist 正是因为存在「纹理/合成错乱」bug，
+  //     强行忽略黑名单后表现为——粒子视觉整体旋转一个角度、文字只渲染出
+  //     上半截、3D 歌单架倾斜（用户 v2.3.1 实测）。GPU 崩溃守卫只能兜住
+  //     「进程崩溃」，兜不住这种「不崩溃但渲染错乱」。改为默认让 Chromium
+  //     自行决定是否硬件加速；渲染异常的用户可设 STARLIGHTMUSIC_NO_GPU=1
+  //     强制软件渲染，或删除 userData 目录里的 .gpu-crash-guard 逻辑不变。
   ['enable-accelerated-2d-canvas'],                 // 启用 2D Canvas 硬件加速
   ['disable-background-timer-throttling'],          // 禁止后台标签页定时器节流（保持音乐播放）
   ['disable-renderer-backgrounding'],               // 禁止后台渲染器降级
   ['disable-backgrounding-occluded-windows'],       // 禁止被遮挡窗口进入后台模式
 ];
-// Windows 需要显式选择 D3D11；macOS 的 ANGLE 只提供 OpenGL/Metal，
-// 强行传入 d3d11 会让 GPU 进程初始化失败，进而使 WebGL 视觉全部降级。
-if (process.platform === 'win32') {
-  CHROMIUM_PERFORMANCE_SWITCHES.push(
-    ['force_high_performance_gpu'],                 // 强制使用高性能独立显卡
-    ['use-angle', 'd3d11']                          // 使用 ANGLE D3D11 后端（Windows 图形兼容层）
-  );
-}
+// Windows 不再显式选 ANGLE 后端/强切独显：交给 Chromium 默认（D3D11 仍是
+// 默认 ANGLE 后端，无需显式指定；老核显上 force_high_performance_gpu 反而
+// 会触发驱动的多 GPU 切换路径，正是错乱来源之一）。
 // ── GPU 崩溃自动降级（2026-09-22）────────────────────────────
 // 下面这批开关会「强制」启用硬件加速与高性能独显；当机器 GPU 环境异常时
 // （驱动更新/独显被禁/被占用），GPU 进程会反复崩溃并触发
