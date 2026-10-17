@@ -55,6 +55,7 @@ const {
 /* ==================== Node.js 核心模块 ==================== */
 const http = require('http');       // HTTP 服务器
 const https = require('https');     // HTTPS 请求
+const os = require('os');           // 平台兜底路径（节拍缓存目录等）
 const fs   = require('fs');         // 文件系统操作
 const path = require('path');       // 路径处理
 const crypto = require('crypto');   // 加密（SHA256/SHA512 校验）
@@ -131,7 +132,13 @@ const QQ_COOKIE_FILE = process.env.QQ_COOKIE_FILE || path.join(PROJECT_ROOT, '.q
 const UPDATE_WORK_DIR = process.env.STARLIGHTMUSIC_UPDATE_DIR || path.join(PROJECT_ROOT, 'updates');         // 更新工作目录
 const UPDATE_DOWNLOAD_DIR = process.env.STARLIGHTMUSIC_UPDATE_DOWNLOAD_DIR || path.join(UPDATE_WORK_DIR, 'downloads');  // 更新下载目录
 const UPDATE_PATCH_BACKUP_DIR = process.env.STARLIGHTMUSIC_PATCH_BACKUP_DIR || path.join(UPDATE_WORK_DIR, 'backups', 'patches');  // 补丁备份目录
-const BEATMAP_CACHE_DIR = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';  // 节拍映射缓存目录
+// 节拍映射缓存目录。win32 沿用 D: 盘既有约定；其余平台回落到用户主目录
+// （mac 打包版 CWD=/ 时 mkdirSync 会抛 EACCES，节拍缓存静默退化 memory-only）。
+// 桌面端 main.js 启动时会注入 STARLIGHTMUSIC_BEAT_CACHE_DIR（userData 下）覆盖此兜底。
+const BEATMAP_CACHE_DIR = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR ||
+  (process.platform === 'win32'
+    ? 'D:\\StarlightMusicCache\\beatmaps'
+    : path.join(os.homedir(), 'StarlightMusicCache', 'beatmaps'));
 // cuefield 反馈记录：桌面端 main.js 注入 userData 下的路径；裸跑（如本地调试）时退回仓库根。
 const CUEFIELD_FEEDBACK_FILE = process.env.STARLIGHTMUSIC_CUEFIELD_FEEDBACK_FILE || path.join(PROJECT_ROOT, 'cuefield-feedback.jsonl');
 const MUSIC_SOURCES_CONFIG_FILE = path.join(PROJECT_ROOT, '.music-sources.json');  // 音源配置文件
@@ -1541,12 +1548,21 @@ async function downloadUpdateAssetWithMirrors(job) {
 
       const writer = fs.createWriteStream(tmpPath);
       const reader = resp.body.getReader();
+      // 大小防护：latest.yml 的 size 是权威值。上游谎报 content-length / 错链到大文件时，
+      // 没有中途上限会把磁盘写满才失败。已知 expectedSize 时给 8MB 容差；未知时给 2GB 绝对上限。
+      const sizeCap = job.expectedSize > 0
+        ? job.expectedSize + 8 * 1024 * 1024
+        : 2 * 1024 * 1024 * 1024;
       try {
         while (true) {
           const chunk = await reader.read();
           if (chunk.done) break;
           const buf = Buffer.from(chunk.value);
           job.received += buf.length;
+          if (job.received > sizeCap) {
+            try { await reader.cancel(); } catch (_) {}
+            throw updateError('DOWNLOAD_SIZE_EXCEEDED', `下载超出预期大小（cap=${sizeCap}）`);
+          }
           speedWindowBytes += buf.length;
           const now = Date.now();
           if (now - speedWindowAt >= 900) {
@@ -2823,6 +2839,31 @@ function audioContentTypeForUrl(audioUrl, upstreamType) {
   if (/\.ogg$/.test(pathname)) return 'audio/ogg';
   if (/\.wav$/.test(pathname)) return 'audio/wav';
   return upstreamType || 'audio/mpeg';
+}
+
+// 音频代理跟随 3xx：CDN 签名地址常以 302 指向真实存储节点，原生 http.get 不跟随，
+// 会把无 Location 头的 3xx 透传给 <audio> 导致播放失败。
+// 每一跳都重过 isPrivateOrLocalUrl——初始 URL 过了 SSRF 校验不代表跳转目标可信，
+// 开放重定向可能把代理当跳板探测内网。上限 4 跳防循环。
+function audioProxyFollow(audioUrl, hdr, onUpstream, redirectsLeft) {
+  const parsedUrl = new URL(audioUrl);
+  const transport = parsedUrl.protocol === 'https:' ? https : http;
+  const proxyReq = transport.get(audioUrl, { headers: hdr, family: 4, timeout: 15000 }, (up) => {
+    const status = up.statusCode || 0;
+    if (status === 301 || status === 302 || status === 303 || status === 307 || status === 308) {
+      up.resume(); // 丢弃 3xx 响应体
+      const location = up.headers.location || '';
+      let next = '';
+      try { next = new URL(location, audioUrl).toString(); } catch (e) { onUpstream(new Error('REDIRECT_LOCATION_INVALID'), null); return; }
+      if (redirectsLeft <= 0) { onUpstream(new Error('REDIRECT_LIMIT_EXCEEDED'), null); return; }
+      if (isPrivateOrLocalUrl(next)) { onUpstream(new Error('REDIRECT_BLOCKED_LOCAL'), null); return; }
+      audioProxyFollow(next, hdr, onUpstream, redirectsLeft - 1);
+      return;
+    }
+    onUpstream(null, up);
+  });
+  proxyReq.on('error', (err) => onUpstream(err, null));
+  proxyReq.on('timeout', () => { proxyReq.destroy(); onUpstream(new Error('UPSTREAM_TIMEOUT'), null); });
 }
 
 function mapQQPlaylist(pl, kind) {
@@ -5017,10 +5058,15 @@ const server = http.createServer(async (req, res) => {
       if (isPrivateOrLocalUrl(audioUrl)) { res.writeHead(403); res.end('Forbidden url'); return; }
       const range = req.headers.range || '';
       const hdr = audioProxyHeadersFor(audioUrl, range);
-      // (ported upstream PR #136) 原生 http/https 避免 undici 连接超时
-      const parsedUrl = new URL(audioUrl);
-      const transport = parsedUrl.protocol === 'https:' ? https : http;
-      const proxyReq = transport.get(audioUrl, { headers: hdr, family: 4, timeout: 15000 }, (up) => {
+      // (ported upstream PR #136) 原生 http/https 避免 undici 连接超时；
+      // 3xx 由 audioProxyFollow 跟随（CDN 签名地址常 302），Range 头随跳转透传
+      audioProxyFollow(audioUrl, hdr, (err, up) => {
+        if (err || !up) {
+          console.error('[Audio] upstream error:', err && err.message);
+          if (!res.headersSent) res.writeHead(/TIMEOUT/.test(err && err.message) ? 504 : 502);
+          res.end();
+          return;
+        }
         const out = {
           'Content-Type': audioContentTypeForUrl(audioUrl, up.headers['content-type']),
           'Access-Control-Allow-Origin': '*',
@@ -5031,10 +5077,8 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(up.statusCode, out);
         up.on('data', (chunk) => res.write(chunk));
         up.on('end', () => res.end());
-        up.on('error', (err) => { console.error('[Audio] upstream chunk error:', err.message); res.end(); });
-      });
-      proxyReq.on('error', (err) => { console.error('[Audio] request error:', err.message); if (!res.headersSent) { res.writeHead(502); } res.end(); });
-      proxyReq.on('timeout', () => { console.error('[Audio] request timeout'); proxyReq.destroy(); if (!res.headersSent) { res.writeHead(504); } res.end(); });
+        up.on('error', (chunkErr) => { console.error('[Audio] upstream chunk error:', chunkErr.message); res.end(); });
+      }, 4);
     } catch (err) { console.error('[Audio]', err); res.writeHead(500); res.end(); }
     return;
   }

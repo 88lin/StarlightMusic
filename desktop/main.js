@@ -1688,8 +1688,22 @@ async function walkDirSize(dirPath, depth = 0) {
   return total;
 }
 
+/**
+ * 节拍映射缓存目录（与 server.js 共用同一份真值）
+ * - 环境变量优先（外部指定）
+ * - win32 沿用 D: 盘独立缓存目录的既有约定
+ * - 其余平台进 userData：非 Windows 下 'D:\\...' 只是字面量怪目录名，
+ *   双击启动（CWD=/）时还会因 EACCES 把节拍缓存静默退化成 memory-only
+ */
+function getBeatmapsCacheDir() {
+  if (process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR) return process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR;
+  return process.platform === 'win32'
+    ? 'D:\\StarlightMusicCache\\beatmaps'
+    : path.join(app.getPath('userData'), 'beatmaps');
+}
+
 ipcMain.handle('starlightmusic-cache-get-info', async () => {
-  const beatmapsDir = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
+  const beatmapsDir = getBeatmapsCacheDir();
   const cacheRoot = path.dirname(beatmapsDir);
   const userDataPath = app.getPath('userData');
   const networkCachePath = path.join(userDataPath, 'Cache');
@@ -1708,7 +1722,7 @@ ipcMain.handle('starlightmusic-cache-get-info', async () => {
 
 ipcMain.handle('starlightmusic-cache-open-path', async (_event, targetPath) => {
   // 安全校验：只允许打开缓存面板返回过的目录（节拍缓存根 / userData）
-  const beatmapsDir = process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR || 'D:\\StarlightMusicCache\\beatmaps';
+  const beatmapsDir = getBeatmapsCacheDir();
   const allowed = [path.dirname(beatmapsDir), app.getPath('userData')];
   const p = String(targetPath || '');
   if (!allowed.some((root) => p === root || p.startsWith(root + path.sep))) {
@@ -2322,6 +2336,9 @@ async function createWindow() {
   process.env.QQ_COOKIE_FILE = path.join(app.getPath('userData'), '.qq-cookie');
   process.env.STARLIGHTMUSIC_UPDATE_DIR = getUpdateDownloadDir();
   process.env.STARLIGHTMUSIC_CUEFIELD_FEEDBACK_FILE = path.join(app.getPath('userData'), 'cuefield-feedback.jsonl');
+  // 节拍缓存目录与 server.js 同进程共享：注入后 server 侧 BEATMAP_CACHE_DIR
+  // 与本文件缓存统计/清理的路径读取点自动一致（server require 发生在下方，时序安全）
+  process.env.STARLIGHTMUSIC_BEAT_CACHE_DIR = getBeatmapsCacheDir();
 
   // 内置换源服务（go-music-api）：随包分发的平台原生二进制，由主进程托管启动。
   // 不 await，避免拖慢窗口创建（实测就绪约 600ms）；就绪后 go-music-service 会清掉

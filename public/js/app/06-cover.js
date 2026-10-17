@@ -141,20 +141,30 @@ function buildEdgeAndDepth(srcCanvas) {
 }
 
 // AI 深度估计 (Xenova/depth-anything-small) - 异步加载, 失败回退
+// 远程 CDN 的动态 import 可能长时间既不 resolve 也不 reject：不设超时的话
+// aiDepthBusy 会永远卡在 true，本会话内 AI 深度功能静默失效且每张封面都要白等。
+function withAIDepthTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(function (_, reject) { setTimeout(function () { reject(new Error('AI_DEPTH_LOAD_TIMEOUT')); }, ms); })
+  ]);
+}
 async function ensureAIDepthPipeline() {
   if (aiDepthReady && aiDepthPipeline) return aiDepthPipeline;
   if (aiDepthBusy) return null;
   aiDepthBusy = true;
   try {
     showAIDepthChip('加载 AI 深度模型 (首次需下载 50MB)…');
-    var mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+    var mod = await withAIDepthTimeout(import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2'), 45000);
     mod.env.allowLocalModels = false;
     if (mod.env.backends && mod.env.backends.onnx && mod.env.backends.onnx.wasm) mod.env.backends.onnx.wasm.numThreads = 1;
-    aiDepthPipeline = await mod.pipeline('depth-estimation', 'Xenova/depth-anything-small-hf');
+    aiDepthPipeline = await withAIDepthTimeout(mod.pipeline('depth-estimation', 'Xenova/depth-anything-small-hf'), 180000);
     aiDepthReady = true;
     return aiDepthPipeline;
   } catch (e) {
     console.warn('AI depth pipeline failed:', e);
+    // 失败冷却（含超时）：避免慢 CDN 下每张封面都重复挂 45 秒
+    aiDepthFailUntil = performance.now() + 120000;
     return null;
   } finally {
     aiDepthBusy = false;
