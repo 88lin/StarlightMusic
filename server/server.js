@@ -1548,12 +1548,21 @@ async function downloadUpdateAssetWithMirrors(job) {
 
       const writer = fs.createWriteStream(tmpPath);
       const reader = resp.body.getReader();
+      // 大小防护：latest.yml 的 size 是权威值。上游谎报 content-length / 错链到大文件时，
+      // 没有中途上限会把磁盘写满才失败。已知 expectedSize 时给 8MB 容差；未知时给 2GB 绝对上限。
+      const sizeCap = job.expectedSize > 0
+        ? job.expectedSize + 8 * 1024 * 1024
+        : 2 * 1024 * 1024 * 1024;
       try {
         while (true) {
           const chunk = await reader.read();
           if (chunk.done) break;
           const buf = Buffer.from(chunk.value);
           job.received += buf.length;
+          if (job.received > sizeCap) {
+            try { await reader.cancel(); } catch (_) {}
+            throw updateError('DOWNLOAD_SIZE_EXCEEDED', `下载超出预期大小（cap=${sizeCap}）`);
+          }
           speedWindowBytes += buf.length;
           const now = Date.now();
           if (now - speedWindowAt >= 900) {
