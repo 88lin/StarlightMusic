@@ -2832,6 +2832,31 @@ function audioContentTypeForUrl(audioUrl, upstreamType) {
   return upstreamType || 'audio/mpeg';
 }
 
+// 音频代理跟随 3xx：CDN 签名地址常以 302 指向真实存储节点，原生 http.get 不跟随，
+// 会把无 Location 头的 3xx 透传给 <audio> 导致播放失败。
+// 每一跳都重过 isPrivateOrLocalUrl——初始 URL 过了 SSRF 校验不代表跳转目标可信，
+// 开放重定向可能把代理当跳板探测内网。上限 4 跳防循环。
+function audioProxyFollow(audioUrl, hdr, onUpstream, redirectsLeft) {
+  const parsedUrl = new URL(audioUrl);
+  const transport = parsedUrl.protocol === 'https:' ? https : http;
+  const proxyReq = transport.get(audioUrl, { headers: hdr, family: 4, timeout: 15000 }, (up) => {
+    const status = up.statusCode || 0;
+    if (status === 301 || status === 302 || status === 303 || status === 307 || status === 308) {
+      up.resume(); // 丢弃 3xx 响应体
+      const location = up.headers.location || '';
+      let next = '';
+      try { next = new URL(location, audioUrl).toString(); } catch (e) { onUpstream(new Error('REDIRECT_LOCATION_INVALID'), null); return; }
+      if (redirectsLeft <= 0) { onUpstream(new Error('REDIRECT_LIMIT_EXCEEDED'), null); return; }
+      if (isPrivateOrLocalUrl(next)) { onUpstream(new Error('REDIRECT_BLOCKED_LOCAL'), null); return; }
+      audioProxyFollow(next, hdr, onUpstream, redirectsLeft - 1);
+      return;
+    }
+    onUpstream(null, up);
+  });
+  proxyReq.on('error', (err) => onUpstream(err, null));
+  proxyReq.on('timeout', () => { proxyReq.destroy(); onUpstream(new Error('UPSTREAM_TIMEOUT'), null); });
+}
+
 function mapQQPlaylist(pl, kind) {
   pl = pl || {};
   const id = pl.dissid || pl.tid || pl.dirid || pl.id || pl.diss_id;
@@ -5024,10 +5049,15 @@ const server = http.createServer(async (req, res) => {
       if (isPrivateOrLocalUrl(audioUrl)) { res.writeHead(403); res.end('Forbidden url'); return; }
       const range = req.headers.range || '';
       const hdr = audioProxyHeadersFor(audioUrl, range);
-      // (ported upstream PR #136) 原生 http/https 避免 undici 连接超时
-      const parsedUrl = new URL(audioUrl);
-      const transport = parsedUrl.protocol === 'https:' ? https : http;
-      const proxyReq = transport.get(audioUrl, { headers: hdr, family: 4, timeout: 15000 }, (up) => {
+      // (ported upstream PR #136) 原生 http/https 避免 undici 连接超时；
+      // 3xx 由 audioProxyFollow 跟随（CDN 签名地址常 302），Range 头随跳转透传
+      audioProxyFollow(audioUrl, hdr, (err, up) => {
+        if (err || !up) {
+          console.error('[Audio] upstream error:', err && err.message);
+          if (!res.headersSent) res.writeHead(/TIMEOUT/.test(err && err.message) ? 504 : 502);
+          res.end();
+          return;
+        }
         const out = {
           'Content-Type': audioContentTypeForUrl(audioUrl, up.headers['content-type']),
           'Access-Control-Allow-Origin': '*',
@@ -5038,10 +5068,8 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(up.statusCode, out);
         up.on('data', (chunk) => res.write(chunk));
         up.on('end', () => res.end());
-        up.on('error', (err) => { console.error('[Audio] upstream chunk error:', err.message); res.end(); });
-      });
-      proxyReq.on('error', (err) => { console.error('[Audio] request error:', err.message); if (!res.headersSent) { res.writeHead(502); } res.end(); });
-      proxyReq.on('timeout', () => { console.error('[Audio] request timeout'); proxyReq.destroy(); if (!res.headersSent) { res.writeHead(504); } res.end(); });
+        up.on('error', (chunkErr) => { console.error('[Audio] upstream chunk error:', chunkErr.message); res.end(); });
+      }, 4);
     } catch (err) { console.error('[Audio]', err); res.writeHead(500); res.end(); }
     return;
   }
