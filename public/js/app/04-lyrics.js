@@ -49,6 +49,14 @@ function lyricContextOpacityValue() {
 function lyricContextSpreadValue() {
   return clampRange(fx && fx.lyricContextSpread == null ? fxDefaults.lyricContextSpread : Number(fx && fx.lyricContextSpread), 0.60, 2.40);
 }
+/** 歌词相邻行最小中心距：按当前行实际纹理高度 × 1.12 计（长句换行时 worldH 变大，固定 step 会重叠） */
+function lyricRowStepMin() {
+  var cur = stageLyrics && stageLyrics.current;
+  var d = cur && cur.userData && cur.userData.lyric;
+  var h = d ? (d.textWorldH || d.worldH || 0.62) : 0.62;
+  var sc = cur && cur.scale ? Math.max(cur.scale.x || 1, 1) : 1;
+  return clampRange(h * sc * 1.12, 0.56, 1.5);
+}
 /** 亮底避光强度：总开关关闭时返回 0（可读性衬底完全隐藏），否则取滑块值 */
 function lyricBackdropAdaptStrengthValue() {
   if (typeof fx === 'undefined' || !fx || fx.lyricBackdropAdapt === false) return 0;
@@ -208,8 +216,12 @@ function parkLyricStyleFor(rank) {
   var f = Math.max(0, Math.round(rank) - 1);
   var spread = lyricContextSpreadValue();
   var ctxOpacity = lyricContextOpacityValue();
+  // 行距下限钳制：step 0.56×spread 最低可到 0.336，而单行纹理 worldH 可达 0.6–1.2
+  //（长句换行时），低 spread 下多行行间必然重叠——用户实测"歌词重叠"。
+  // spread 过低时按需放大 step，保证相邻行中心距 ≥ 行高 × 1.12。
+  var step = Math.max(0.56 * spread, lyricRowStepMin());
   return {
-    y: 0.76 + f * 0.56 * spread,
+    y: 0.76 + f * step,
     z: Math.max(0.62, 1.33 - f * 0.15),
     scale: Math.max(0.34, 0.90 * Math.pow(0.912, f)),
     opacity: Math.max(0.08, (0.55 - f * 0.13) * ctxOpacity),
@@ -220,8 +232,10 @@ function upcomingLyricStyleFor(slot) {
   var s = Math.max(0, Math.round(slot));
   var spread = lyricContextSpreadValue();
   var ctxOpacity = lyricContextOpacityValue();
+  // 与 park 同一钳制（见 parkLyricStyleFor 注释）
+  var step = Math.max(0.56 * spread, lyricRowStepMin());
   return {
-    y: -(0.40 + s * 0.56 * spread),
+    y: -(0.40 + s * step),
     z: Math.max(0.62, 1.33 - s * 0.15),
     scale: Math.max(0.34, 0.90 * Math.pow(0.912, s)),
     opacity: Math.max(0.08, (0.52 - s * 0.14) * ctxOpacity),
@@ -247,7 +261,7 @@ function attachLyricTranslation(parentMesh, translationText) {
   group.userData.state = 'idle';
   group.userData.age = 99;
   group.userData.staticTranslationChild = true;
-  group.position.set(0, -0.46 * lyricTranslationGapValue(), 0.015);
+  group.position.set(0, -lyricTranslationOffsetY(), 0.015);
   group.scale.setScalar(lyricTranslationScaleValue());
   // 译文只保留文字层：可读性底衬/辉光/太阳/光粒全关，避免压住主行
   if (data.readabilityMat) data.readabilityMat.opacity = 0;
@@ -346,6 +360,13 @@ function refreshLyricTranslations() {
  * 拖动译文滑块时**就地**更新已有译文子节点（间距/字号/透明度）。
  * 不重建网格：buildLyricMesh 要重绘文字纹理，滑块拖动时会卡。
  */
+/** 歌词语义节点间距：按本行实际纹理高度决定下沉量，长句行不再侵入下一行区域 */
+function lyricTranslationOffsetY() {
+  var cur = stageLyrics && stageLyrics.current;
+  var d = cur && cur.userData && cur.userData.lyric;
+  var halfH = d ? (d.textWorldH || d.worldH || 0.62) * 0.5 : 0.31;
+  return 0.46 * lyricTranslationGapValue() + halfH * 0.30;
+}
 function applyLyricTranslationStyle() {
   if (!stageLyrics) return;
   var gap = lyricTranslationGapValue();
@@ -355,7 +376,7 @@ function applyLyricTranslationStyle() {
     if (!mesh || !mesh.userData) return;
     var t = mesh.userData.translationMesh;
     if (!t) return;
-    t.position.y = -0.46 * gap;
+    t.position.y = -lyricTranslationOffsetY();
     t.scale.setScalar(scale);
     var d = t.userData.lyric || {};
     if (d.textMat && d.textMat.uniforms && d.textMat.uniforms.uOpacity) d.textMat.uniforms.uOpacity.value = alpha;

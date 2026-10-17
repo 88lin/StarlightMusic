@@ -901,6 +901,7 @@
     "5bb474fb52ed9bef": 1,
     "7cb25f51c32c2c2a": 1,
     "a0bf19afdba2d00f": 1,
+    "7150a627f27814c4": 1,
     "e855875b06c5559e": 1,
     "bfd7be7e2507864c": 1,
     "38bf779d477c7106": 1,
@@ -925,6 +926,7 @@
     "f8a57f14f53ad31a": 1,
     "62890039936bf0d5": 1,
     "b4375be2672f92d0": 1,
+    "52458b7cf35bd744": 1,
     "be4387714e9ad0ca": 1,
     "dd37c120aaed7337": 1,
     "9f4d937e16090eb5": 1,
@@ -3106,6 +3108,7 @@
     },
     "camera": {
       "89ee76f57fd3620b": true,
+      "59402ec31f8fea93": true,
       "48d43e1c74a26e76": true
     },
     "djMode": {
@@ -6826,6 +6829,9 @@
     "lyricMotionProfile": {
       "48d43e1c74a26e76": false
     },
+    "lyricRowStepMin": {
+      "48d43e1c74a26e76": false
+    },
     "lyricSunAvg": {
       "48d43e1c74a26e76": true
     },
@@ -6855,6 +6861,9 @@
     },
     "lyricTiltQuat": {
       "48d43e1c74a26e76": true
+    },
+    "lyricTranslationOffsetY": {
+      "48d43e1c74a26e76": false
     },
     "lyricTranslationWantedAt": {
       "48d43e1c74a26e76": false
